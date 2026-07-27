@@ -1,0 +1,16 @@
+{
+  "_fixture": {
+    "capture_date": null,
+    "status": "contract shape; synthetic values; live capture pending",
+    "source": "current Calypso normalizer tests"
+  },
+  "fields": ["period", "views", "visitors"],
+  "data": [
+    ["2026-07-24", 1888, 1227],
+    ["2026-07-25", 1512, 998],
+    ["2026-07-26", 1630, 1094],
+    ["2026-07-27", 1842, 1206]
+  ],
+  "unit": "day"
+}
+

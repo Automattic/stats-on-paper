@@ -1,0 +1,16 @@
+{
+  "_fixture": {
+    "capture_date": null,
+    "status": "contract shape; synthetic values; live capture pending",
+    "source": "WordPress.com wpcom/v2 server implementation"
+  },
+  "date": "2026-07-27",
+  "unit": "day",
+  "quantity": 1,
+  "fields": ["period", "orders"],
+  "data": [
+    ["2026-07-26", 9],
+    ["2026-07-27", 14]
+  ]
+}
+

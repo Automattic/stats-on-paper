@@ -1,0 +1,11 @@
+{
+  "_fixture": {
+    "capture_date": null,
+    "status": "shape unknown; live capture required",
+    "source": "public docs only describe stats as an array"
+  },
+  "date": "2026-07-27",
+  "stats": [],
+  "visits": []
+}
+
