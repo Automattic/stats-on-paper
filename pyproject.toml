@@ -1,0 +1,80 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "jetpack-stats-on-paper"
+version = "0.1.0"
+description = "Put WordPress and Jetpack stats on Waveshare, Inky, and TRMNL e-ink displays."
+readme = "README.md"
+requires-python = ">=3.11"
+license = "GPL-2.0-or-later"
+authors = [{ name = "Automattic" }]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: System :: Hardware",
+]
+dependencies = [
+  "Flask>=3.1,<4",
+  "Pillow>=11,<13",
+  "python-dotenv>=1.0,<2",
+  "requests>=2.32,<3",
+]
+
+[project.optional-dependencies]
+inky = ["inky>=2.2,<3"]
+# The official epd4in26 driver is not distributed as a compatible PyPI wheel.
+# Keep this extra so the documented install target is stable while the driver
+# packaging question is resolved; the runtime error gives the exact next step.
+waveshare = []
+
+[project.scripts]
+jsp = "jsp.cli:main"
+
+[dependency-groups]
+dev = [
+  "mypy>=1.15",
+  "pytest>=8.3",
+  "pytest-cov>=6",
+  "responses>=0.25",
+  "ruff>=0.11",
+  "types-requests>=2.32",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/jsp"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"assets/fonts" = "jsp/assets/fonts"
+
+[tool.hatch.build.targets.sdist]
+include = [
+  "/assets",
+  "/docs",
+  "/src",
+  "/tests",
+  "/.env.example",
+  "/COPYRIGHT.md",
+  "/LICENSE",
+  "/README.md",
+]
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+packages = ["jsp"]
+
