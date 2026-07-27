@@ -1,0 +1,60 @@
+{
+  "schema": 1,
+  "site": {
+    "id": 123456789,
+    "name": "Example Field Notes",
+    "url": "https://example.com"
+  },
+  "fetched_at": "2026-07-27T12:34:56Z",
+  "age_seconds": 0,
+  "today": {
+    "views": 1842,
+    "visitors": 1206,
+    "likes": 31,
+    "comments": 8
+  },
+  "yesterday": {
+    "views": 1630,
+    "visitors": 1094,
+    "likes": 27,
+    "comments": 5
+  },
+  "series": [
+    {"date": "2026-06-28", "views": 1120, "visitors": 751},
+    {"date": "2026-06-29", "views": 980, "visitors": 662},
+    {"date": "2026-06-30", "views": 1214, "visitors": 804},
+    {"date": "2026-07-01", "views": 1280, "visitors": 836},
+    {"date": "2026-07-02", "views": 1198, "visitors": 790},
+    {"date": "2026-07-03", "views": 1344, "visitors": 884},
+    {"date": "2026-07-04", "views": 1010, "visitors": 680},
+    {"date": "2026-07-05", "views": 944, "visitors": 635},
+    {"date": "2026-07-06", "views": 1378, "visitors": 902},
+    {"date": "2026-07-07", "views": 1422, "visitors": 936},
+    {"date": "2026-07-08", "views": 1510, "visitors": 991},
+    {"date": "2026-07-09", "views": 1475, "visitors": 968},
+    {"date": "2026-07-10", "views": 1588, "visitors": 1034},
+    {"date": "2026-07-11", "views": 1250, "visitors": 823},
+    {"date": "2026-07-12", "views": 1168, "visitors": 775},
+    {"date": "2026-07-13", "views": 1492, "visitors": 974},
+    {"date": "2026-07-14", "views": 1556, "visitors": 1017},
+    {"date": "2026-07-15", "views": 1602, "visitors": 1041},
+    {"date": "2026-07-16", "views": 1720, "visitors": 1119},
+    {"date": "2026-07-17", "views": 1655, "visitors": 1087},
+    {"date": "2026-07-18", "views": 1394, "visitors": 921},
+    {"date": "2026-07-19", "views": 1270, "visitors": 848},
+    {"date": "2026-07-20", "views": 1698, "visitors": 1108},
+    {"date": "2026-07-21", "views": 1752, "visitors": 1143},
+    {"date": "2026-07-22", "views": 1810, "visitors": 1180},
+    {"date": "2026-07-23", "views": 1774, "visitors": 1159},
+    {"date": "2026-07-24", "views": 1888, "visitors": 1227},
+    {"date": "2026-07-25", "views": 1512, "visitors": 998},
+    {"date": "2026-07-26", "views": 1630, "visitors": 1094},
+    {"date": "2026-07-27", "views": 1842, "visitors": 1206}
+  ],
+  "all_time": null,
+  "commerce": {
+    "orders": 14
+  },
+  "source": "wpcom"
+}
+

@@ -10,7 +10,7 @@ Put a WordPress.com or Jetpack site's stats on an 800×480 e-ink display.
 
 | Tier | Panel | Host | Status |
 | --- | --- | --- | --- |
-| Mono | Waveshare 4.26" mono HAT | Raspberry Pi | Driver included |
+| Mono | Waveshare 4.26" mono HAT | Raspberry Pi | Driver packaging pending |
 | Colour | Pimoroni Inky Impression 7.3" (Spectra 6) | Raspberry Pi | Driver included |
 | Hosted | TRMNL | TRMNL | JSON polling included |
 
@@ -37,4 +37,3 @@ The exact WordPress.com requests and current verification gaps are recorded in
 [`docs/api-notes.md`](docs/api-notes.md).
 
 Licensed under GPL-2.0-or-later.
-
