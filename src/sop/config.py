@@ -56,8 +56,18 @@ def _optional(name: str) -> str | None:
     return value or None
 
 
+def _setting(name: str, default: str) -> str:
+    """Read a string setting, treating blank as unset.
+
+    `.env.example` ships optional settings as blank lines, and a blank path
+    would otherwise point at the current directory.
+    """
+
+    return os.getenv(name, "").strip() or default
+
+
 def _positive_int(name: str, default: int) -> int:
-    raw = os.getenv(name, str(default)).strip()
+    raw = _setting(name, str(default))
     try:
         value = int(raw)
     except ValueError as error:
@@ -70,7 +80,7 @@ def _positive_int(name: str, default: int) -> int:
 
 
 def _boolean(name: str, default: bool = False) -> bool:
-    raw = os.getenv(name, str(default)).strip().lower()
+    raw = _setting(name, str(default)).lower()
     if raw in {"1", "true", "yes", "on"}:
         return True
     if raw in {"0", "false", "no", "off"}:
@@ -83,19 +93,19 @@ def load_config(*, required: tuple[str, ...] = ()) -> Config:
 
     load_dotenv()
 
-    scope_value = os.getenv("WPCOM_SCOPE", "stats").strip().lower()
+    scope_value = _setting("WPCOM_SCOPE", "stats").lower()
     if scope_value not in {"stats", "global"}:
         raise ConfigError("WPCOM_SCOPE must be 'stats' or 'global'. See .env.example.")
     oauth_scope: Literal["stats", "global"] = (
         "global" if scope_value == "global" else "stats"
     )
 
-    source_value = os.getenv("SOP_SOURCE", "direct").strip().lower()
+    source_value = _setting("SOP_SOURCE", "direct").lower()
     if source_value not in {"direct", "url"}:
         raise ConfigError("SOP_SOURCE must be 'direct' or 'url'. See .env.example.")
     source: Literal["direct", "url"] = "url" if source_value == "url" else "direct"
 
-    timezone = os.getenv("SOP_TZ", "UTC").strip()
+    timezone = _setting("SOP_TZ", "UTC")
     try:
         ZoneInfo(timezone)
     except ZoneInfoNotFoundError as error:
@@ -108,16 +118,14 @@ def load_config(*, required: tuple[str, ...] = ()) -> Config:
         client_secret=_optional("WPCOM_CLIENT_SECRET"),
         site=_optional("WPCOM_SITE"),
         oauth_scope=oauth_scope,
-        redirect_uri=os.getenv(
-            "WPCOM_REDIRECT_URI", "http://localhost/callback"
-        ).strip(),
+        redirect_uri=_setting("WPCOM_REDIRECT_URI", "http://localhost/callback"),
         token_path=Path(
-            os.getenv(
+            _setting(
                 "SOP_TOKEN_PATH", str(Path.home() / ".config" / "sop" / "token.json")
             )
         ).expanduser(),
         cache_dir=Path(
-            os.getenv("SOP_CACHE_DIR", str(Path.home() / ".cache" / "sop"))
+            _setting("SOP_CACHE_DIR", str(Path.home() / ".cache" / "sop"))
         ).expanduser(),
         series_days=_positive_int("SOP_SERIES_DAYS", 30),
         poll_interval_seconds=_positive_int("SOP_POLL_INTERVAL_SECONDS", 3600),
@@ -128,7 +136,7 @@ def load_config(*, required: tuple[str, ...] = ()) -> Config:
         commerce=_boolean("SOP_COMMERCE"),
         # The view name is validated where the views live, at render time, so
         # there is one list of valid names rather than two.
-        view=os.getenv("SOP_VIEW", "stats").strip() or "stats",
+        view=_setting("SOP_VIEW", "stats"),
         panel=_optional("SOP_PANEL"),
     )
 

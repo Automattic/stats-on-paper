@@ -53,3 +53,17 @@ def test_invalid_values_are_named(monkeypatch: pytest.MonkeyPatch) -> None:
         with pytest.raises(ConfigError, match=message):
             load_config()
         monkeypatch.delenv(name)
+
+
+def test_blank_values_fall_back_to_defaults(monkeypatch: pytest.MonkeyPatch) -> None:
+    """`.env.example` ships optional settings as blank lines. Copied verbatim,
+    a blank must mean "use the default", not the current directory."""
+    for name in ("SOP_TOKEN_PATH", "SOP_CACHE_DIR", "SOP_TZ", "WPCOM_SCOPE"):
+        monkeypatch.setenv(name, "")
+
+    config = load_config()
+
+    assert config.token_path == Path.home() / ".config" / "sop" / "token.json"
+    assert config.cache_dir == Path.home() / ".cache" / "sop"
+    assert config.timezone == "UTC"
+    assert config.oauth_scope == "stats"
