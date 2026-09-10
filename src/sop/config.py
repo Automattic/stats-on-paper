@@ -95,7 +95,7 @@ def load_config(*, required: tuple[str, ...] = ()) -> Config:
         raise ConfigError("SOP_SOURCE must be 'direct' or 'url'. See .env.example.")
     source: Literal["direct", "url"] = "url" if source_value == "url" else "direct"
 
-    timezone = os.getenv("SOP_TZ", "Europe/Madrid").strip()
+    timezone = os.getenv("SOP_TZ", "UTC").strip()
     try:
         ZoneInfo(timezone)
     except ZoneInfoNotFoundError as error:

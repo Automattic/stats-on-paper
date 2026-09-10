@@ -13,8 +13,8 @@ class InkyImpression:
             from inky.auto import auto  # type: ignore[import-not-found]
         except ImportError as error:
             raise RuntimeError(
-                "The Inky driver is not installed. Run `pip install "
-                '"stats-on-paper[inky]"`.'
+                "The Inky driver is not installed. Run `uv sync --extra inky` "
+                "in the checkout."
             ) from error
         self._display: Any = auto()
 

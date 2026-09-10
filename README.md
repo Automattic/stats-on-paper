@@ -119,7 +119,7 @@ you are most likely to change:
 - `SOP_SOURCE=direct|url` — read WordPress.com directly, or poll another
   `sop serve` instance at `SOP_SOURCE_URL`.
 - `SOP_TZ` — the site's timezone, so "today" rolls over when the site's day
-  does (default `Europe/Madrid`).
+  does (default `UTC`).
 - `SOP_SERIES_DAYS` — how many daily points to fetch (default 30). A panel
   draws as many of the most recent days as it can show legibly and captions
   exactly that window.
