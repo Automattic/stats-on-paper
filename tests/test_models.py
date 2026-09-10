@@ -38,15 +38,11 @@ def test_negative_counts_are_rejected_at_the_boundary(snapshot: object) -> None:
     """
     payload = snapshot.to_public_json()
     payload["today"]["views"] = -1
-
     with pytest.raises(SnapshotFormatError, match=r"today\.views must not be negative"):
         snapshot_from_public_json(payload)
 
-
-def test_negative_series_counts_are_rejected(snapshot: object) -> None:
     payload = snapshot.to_public_json()
     payload["series"][1]["visitors"] = -5
-
     with pytest.raises(
         SnapshotFormatError, match=r"series\[1\].visitors must not be negative"
     ):

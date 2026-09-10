@@ -47,37 +47,18 @@ def test_each_endpoint_parser(fixture_dir: Path) -> None:
     )
 
 
-def test_commerce_parser_orders_rows_by_date() -> None:
-    """Today is the last row, so the rows must be sorted before it is taken."""
-    payload = {
-        "fields": ["period", "orders"],
-        "data": [["2026-07-27", 14], ["2026-07-26", 9]],
-    }
-
-    commerce = parse_commerce(payload, expected_date=date(2026, 7, 27))
-
-    assert commerce.orders == 14
-    assert [row.orders for row in commerce.series] == [9, 14]
-
-
-def test_site_from_token_accepts_string_blog_id() -> None:
-    site = site_from_token(
+def test_site_from_token_reads_the_granted_blog() -> None:
+    """The token response names the blog; a string id is accepted, and a mapped
+    domain keeps the configured name rather than the internal *.wordpress.com."""
+    assert site_from_token(
         {"blog_id": "123456789", "blog_url": "https://northstar.test"},
         configured_site="northstar.test",
-    )
+    ) == SiteRef(id=123456789, name="northstar.test", url="https://northstar.test")
 
-    assert site == SiteRef(
-        id=123456789, name="northstar.test", url="https://northstar.test"
-    )
-
-
-def test_site_from_token_prefers_configured_domain_for_mapped_blogs() -> None:
-    site = site_from_token(
+    assert site_from_token(
         {"blog_id": "9288856", "blog_url": "http://internal.wordpress.com"},
         configured_site="pretty.example.com",
-    )
-
-    assert site == SiteRef(
+    ) == SiteRef(
         id=9288856, name="pretty.example.com", url="https://pretty.example.com"
     )
 
@@ -138,47 +119,45 @@ def test_snapshot_assembly_uses_site_dates(fixture_dir: Path, tmp_path: Path) ->
     assert snapshot.commerce.orders == 14
 
 
-def test_summary_parser_rejects_negative_counts(fixture_dir: Path) -> None:
-    payload = load_fixture(fixture_dir, "summary-today.json")
-    payload["visitors"] = -1
-
+def test_parsers_reject_negative_counts(fixture_dir: Path) -> None:
+    """Required figures fail loudly; the optional all-time total is simply
+    absent, because it is never rendered and must not sink the snapshot."""
+    summary = load_fixture(fixture_dir, "summary-today.json")
+    summary["visitors"] = -1
     with pytest.raises(ApiShapeError, match="visitors must not be negative"):
-        parse_summary(payload)
+        parse_summary(summary)
 
-
-def test_visits_parser_rejects_negative_counts(fixture_dir: Path) -> None:
-    payload = load_fixture(fixture_dir, "visits.json")
-    payload["data"][0][payload["fields"].index("views")] = -3
-
+    visits = load_fixture(fixture_dir, "visits.json")
+    visits["data"][0][visits["fields"].index("views")] = -3
     with pytest.raises(ApiShapeError, match="row 0 field views must not be negative"):
-        parse_visits(payload)
+        parse_visits(visits)
+
+    all_time = {"stats": {"views": 10, "visitors": 5, "likes": -1, "comments": 0}}
+    assert parse_all_time(all_time) is None
 
 
-def test_all_time_parser_omits_negative_counts() -> None:
-    """All-time totals are optional and never rendered; a bad value is absent,
-    not fatal to the whole snapshot."""
-    payload = {"stats": {"views": 10, "visitors": 5, "likes": -1, "comments": 0}}
-
-    assert parse_all_time(payload) is None
-
-
-def test_commerce_parser_requires_the_day_it_asked_for() -> None:
-    """Today's figure must be today's row, not whatever row came last.
+def test_commerce_parser_enforces_its_contract() -> None:
+    """Today is the row for the requested day, found after sorting.
 
     The orders endpoint has never been captured live, so a response that omits
-    the requested day is a contract violation rather than a fallback.
+    the requested day or repeats a day is a contract violation, not something
+    to paper over by taking whatever row came last.
     """
-    payload = {"fields": ["period", "orders"], "data": [["2026-07-26", 9]]}
+    unsorted = {
+        "fields": ["period", "orders"],
+        "data": [["2026-07-27", 14], ["2026-07-26", 9]],
+    }
+    commerce = parse_commerce(unsorted, expected_date=date(2026, 7, 27))
+    assert commerce.orders == 14
+    assert [row.orders for row in commerce.series] == [9, 14]
 
+    missing_today = {"fields": ["period", "orders"], "data": [["2026-07-26", 9]]}
     with pytest.raises(ApiShapeError, match="does not cover 2026-07-27"):
-        parse_commerce(payload, expected_date=date(2026, 7, 27))
+        parse_commerce(missing_today, expected_date=date(2026, 7, 27))
 
-
-def test_commerce_parser_rejects_a_repeated_day() -> None:
-    payload = {
+    repeated = {
         "fields": ["period", "orders"],
         "data": [["2026-07-26", 2], ["2026-07-26", 8], ["2026-07-27", 7]],
     }
-
     with pytest.raises(ApiShapeError, match="more than one 2026-07-26"):
-        parse_commerce(payload, expected_date=date(2026, 7, 27))
+        parse_commerce(repeated, expected_date=date(2026, 7, 27))

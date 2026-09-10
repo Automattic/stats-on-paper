@@ -12,51 +12,54 @@ from sop.client import AuthenticationError, ResponseError, TransientClientError
 from sop.service import ApiShapeError, SnapshotService, SnapshotUnavailable
 
 
-def test_cache_hit_skips_fetch(tmp_path: object, snapshot: object) -> None:
+def test_fresh_cache_is_reused_and_stale_cache_is_replaced(
+    tmp_path: object, snapshot: object
+) -> None:
     cache = SnapshotCache(tmp_path)
     current = datetime.now(UTC)
-    cached = replace(snapshot, fetched_at=current)
-    cache.save(cached)
+    cache.save(replace(snapshot, fetched_at=current))
     calls = 0
 
     def fetch() -> object:
         nonlocal calls
         calls += 1
-        return snapshot
+        return replace(snapshot, fetched_at=datetime.now(UTC))
 
     service = SnapshotService(cache=cache, fetch=fetch)
-    result = service.get_snapshot(max_age=60)
 
-    assert result.fetched_at == current
+    assert service.get_snapshot(max_age=60).fetched_at == current
     assert calls == 0
 
+    cache.save(replace(snapshot, fetched_at=current - timedelta(hours=1)))
+    fresh = service.get_snapshot(max_age=60)
 
-def test_stale_cache_is_replaced(tmp_path: object, snapshot: object) -> None:
-    cache = SnapshotCache(tmp_path)
-    old = replace(snapshot, fetched_at=datetime.now(UTC) - timedelta(hours=1))
-    fresh = replace(snapshot, fetched_at=datetime.now(UTC))
-    cache.save(old)
-    service = SnapshotService(cache=cache, fetch=lambda: fresh)
-
-    assert service.get_snapshot(max_age=60).fetched_at == fresh.fetched_at
+    assert calls == 1
+    assert fresh.fetched_at > current - timedelta(hours=1)
     assert cache.load() == fresh
 
 
-def test_network_failure_returns_stale_without_changing_timestamp(
+def test_fetch_failures_return_stale_without_changing_timestamp(
     tmp_path: object, snapshot: object
 ) -> None:
+    """Offline, rate limited, or a changed API shape: the last good snapshot
+    is shown with its original time, so the panel reports an honest age."""
     cache = SnapshotCache(tmp_path)
     old_timestamp = datetime.now(UTC) - timedelta(days=1)
-    old = replace(snapshot, fetched_at=old_timestamp)
-    cache.save(old)
+    cache.save(replace(snapshot, fetched_at=old_timestamp))
 
-    def unavailable() -> object:
-        raise TransientClientError("offline")
+    for error in (
+        TransientClientError("offline"),
+        ResponseError("rate limited", status_code=429),
+        ApiShapeError("stats/summary views must not be negative."),
+    ):
 
-    result = SnapshotService(cache=cache, fetch=unavailable).get_snapshot(max_age=0)
+        def failing(error: Exception = error) -> object:
+            raise error
 
-    assert result.fetched_at == old_timestamp
-    assert result.to_public_json()["age_seconds"] > 0
+        result = SnapshotService(cache=cache, fetch=failing).get_snapshot(max_age=0)
+
+        assert result.fetched_at == old_timestamp, type(error).__name__
+        assert result.to_public_json()["age_seconds"] > 0
 
 
 def test_authentication_failure_never_hides_behind_cache(
@@ -70,32 +73,6 @@ def test_authentication_failure_never_hides_behind_cache(
 
     with pytest.raises(AuthenticationError):
         SnapshotService(cache=cache, fetch=unauthorized).get_snapshot(max_age=0)
-
-
-def test_other_api_failure_can_return_stale(tmp_path: object, snapshot: object) -> None:
-    cache = SnapshotCache(tmp_path)
-    cache.save(snapshot)
-
-    def api_failure() -> object:
-        raise ResponseError("rate limited", status_code=429)
-
-    result = SnapshotService(cache=cache, fetch=api_failure).get_snapshot(max_age=0)
-
-    assert result.fetched_at == snapshot.fetched_at
-
-
-def test_malformed_api_response_returns_stale_cache(
-    tmp_path: object, snapshot: object
-) -> None:
-    cache = SnapshotCache(tmp_path)
-    cache.save(snapshot)
-
-    def malformed() -> object:
-        raise ApiShapeError("stats/summary views must not be negative.")
-
-    result = SnapshotService(cache=cache, fetch=malformed).get_snapshot(max_age=0)
-
-    assert result.fetched_at == snapshot.fetched_at
 
 
 def test_corrupt_cache_does_not_block_a_fresh_fetch(

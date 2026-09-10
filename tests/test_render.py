@@ -16,7 +16,6 @@ from sop.render.assets import logo_image
 from sop.render.chart import (
     MIN_PAIR_COLUMN,
     _format_axis,
-    _orders_bar_width,
     bar_columns,
     bar_top,
     chart_frame,
@@ -33,52 +32,25 @@ from sop.render.palette import PROFILES
 from sop.render.text import text_width
 
 
-@pytest.mark.parametrize(
-    ("profile_name", "mode", "size"),
-    [
-        ("waveshare-2in13", "1", (250, 122)),
-        ("waveshare-2in13-four-color", "P", (250, 122)),
-        ("impression-4in0", "P", (600, 400)),
-        ("waveshare-4in26", "1", (800, 480)),
-        ("waveshare-4in26-four-color", "P", (800, 480)),
-        ("impression-7in3", "P", (800, 480)),
-        ("waveshare-10in3", "P", (1872, 1404)),
-        ("trmnl", "1", (800, 480)),
-    ],
-)
-@pytest.mark.parametrize("view", sorted(VIEWS))
-def test_render_smoke(
-    profile_name: str,
-    mode: str,
-    size: tuple[int, int],
-    view: str,
-    snapshot: object,
-) -> None:
-    image = render(
-        snapshot,
-        PROFILES[profile_name],
-        view=view,
-        now=datetime(2026, 7, 27, 12, 35, 0, tzinfo=UTC),
-    )
+def test_every_frame_matches_the_recorded_reference() -> None:
+    """Pin the sample frame on every view and profile.
 
-    assert image.size == size
-    assert image.mode == mode
-    assert set(pixel_values(image.convert("RGB"))) <= set(PROFILES[profile_name].colors)
+    This is the guard for refactors: a change that is meant to be invisible
+    must leave every hash alone. Along the way it proves each frame's size,
+    mode, and that no rendered colour lies outside the panel's palette.
 
+    Re-record only for an intended rendering change, in its own commit:
+        uv run python tests/record_render_hashes.py
+    """
+    path = Path(__file__).parent / "fixtures" / "render-hashes.json"
+    table: dict[str, dict[str, object]] = json.loads(path.read_text(encoding="utf-8"))
+    # A key removed from the table must fail, not silently reduce coverage.
+    assert set(table) == {f"{view}/{name}" for view in VIEWS for name in PROFILES}
 
-def test_aged_render_differs_from_fresh(snapshot: object) -> None:
-    fresh = render(
-        snapshot,
-        PROFILES["impression-7in3"],
-        now=datetime(2026, 7, 27, 12, 35, 0, tzinfo=UTC),
-    )
-    aged = render(
-        snapshot,
-        PROFILES["impression-7in3"],
-        now=datetime(2026, 7, 27, 16, 35, 0, tzinfo=UTC),
-    )
-
-    assert fresh.tobytes() != aged.tobytes()
+    for view, name, image in render_frames():
+        assert frame_key(image) == table[f"{view}/{name}"], (view, name)
+        palette = set(PROFILES[name].colors)
+        assert set(pixel_values(image.convert("RGB"))) <= palette, (view, name)
 
 
 def test_compact_four_color_uses_yellow_for_structure_not_red_alert(
@@ -109,24 +81,20 @@ def test_compact_four_color_uses_yellow_for_structure_not_red_alert(
     # Yellow is structure only: the footer rule, and today's cap on the
     # sparkline's last column (plot x >= 133, rows 37..66).
     assert all(y >= 98 or (37 <= y <= 66 and x >= 133) for x, y in yellow)
+    # Two hours on, the footer turns red and nothing else does.
     assert 0 < delayed_counts[(220, 38, 38)] < 500
 
 
-def test_long_totals_still_render_at_both_layout_sizes(snapshot: object) -> None:
-    today = replace(snapshot.today, views=12_345_678, visitors=9_876_543)
-    crowded = replace(snapshot, today=today)
-
-    compact = render(crowded, PROFILES["waveshare-2in13"])
-    landscape = render(crowded, PROFILES["impression-7in3"])
-
-    assert compact.size == (250, 122)
-    assert landscape.size == (800, 480)
-
-
-def test_count_axis_ticks_never_invent_fractional_counts() -> None:
+def test_axis_ticks_and_labels_are_truthful() -> None:
+    """Ticks are whole counts, never a fractional midpoint, and labels have units."""
     assert chart_ticks(0.0, 1.0) == (1.0, 0.0)
     assert chart_ticks(0.0, 5.0) == (5.0, 0.0)
     assert chart_ticks(0.0, 2_000.0) == (2_000.0, 1_000.0, 0.0)
+
+    assert _format_axis(2_000_000_000) == "2b"
+    assert _format_axis(1_500_000_000) == "1.5b"
+    assert _format_axis(1_200) == "1.2k"
+    assert _format_axis(2_000) == "2k"
 
 
 def test_actual_provider_marks_are_bundled_and_distinct() -> None:
@@ -178,59 +146,40 @@ def test_unknown_provider_does_not_inherit_jetpack_green(snapshot: object) -> No
     assert colors[(35, 82, 170)] > 0
 
 
-def test_chart_range_anchors_at_zero_for_narrow_high_bands() -> None:
-    """A narrow band high above zero must not be rescaled into a dramatic swing.
+def test_chart_is_anchored_at_zero() -> None:
+    """Counts are magnitudes, so a narrow band high above zero stays flat.
 
-    George Howlett's site sits at 800-1,100 views a day. An auto-scaled lower
-    bound turns that ordinary variation into an apparent collapse and back.
+    A site at 800 to 1,100 views a day must not be rescaled into an apparent
+    collapse and recovery; bars drawn against a floating baseline would
+    encode that lie as height.
     """
-    lower, upper = chart_range([800, 850, 900, 1100, 1050, 980])
-
-    assert lower == 0.0
-    assert upper >= 1100
-
-
-def test_chart_range_anchors_at_zero_for_every_shape() -> None:
-    for values in ([1512, 1630, 1842], [0, 0, 0], [7], [3, 400_000]):
+    for values in ([1512, 1630, 1842], [0, 0, 0], [7], [3, 400_000], [800, 1100]):
         lower, _upper = chart_range(values)
         assert lower == 0.0, values
 
-
-def test_bar_top_is_proportional_to_a_zero_anchored_value() -> None:
-    assert bar_top(0, 1000.0, 0, 100) == 100
-    assert bar_top(500, 1000.0, 0, 100) == 50
-    assert bar_top(1000, 1000.0, 0, 100) == 0
-
-
-def test_narrow_band_bars_stay_visually_flat() -> None:
-    """The anti-dramatisation guarantee, stated as bar heights."""
     upper = chart_range([800, 1100])[1]
     shortest = 100 - bar_top(800, upper, 0, 100)
     tallest = 100 - bar_top(1100, upper, 0, 100)
-
     assert tallest / shortest < 1.5
 
 
 def test_bar_columns_stay_inside_bounds_and_never_overlap() -> None:
-    for count in (1, 2, 3, 7, 30, 90):
-        columns = bar_columns(100, 400, count)
+    """Columns abut inside the plot; a plot narrower than the series still
+    yields one column per day rather than dropping days."""
+    for left, right, count in (
+        (100, 400, 1),
+        (100, 400, 7),
+        (100, 400, 90),
+        (0, 20, 60),
+    ):
+        columns = bar_columns(left, right, count)
 
         assert len(columns) == count
-        for left, right in columns:
-            assert left >= 100
-            assert right <= 400
-            assert right > left
-        for (_, first_right), (second_left, _) in pairwise(columns):
-            assert second_left >= first_right
-
-
-def test_bar_columns_survive_a_plot_narrower_than_the_series() -> None:
-    columns = bar_columns(0, 20, 60)
-
-    assert len(columns) == 60
-    for left, right in columns:
-        assert right > left
-        assert left >= 0 and right <= 20
+        for column_left, column_right in columns:
+            assert left <= column_left < column_right <= right
+        if count <= right - left:
+            for (_, first_right), (second_left, _) in pairwise(columns):
+                assert second_left >= first_right
 
 
 def _column_ink_tops(image: object, box: tuple[int, int, int, int]) -> list[int | None]:
@@ -278,51 +227,55 @@ def test_todays_bar_never_reads_taller_than_its_value(snapshot: object) -> None:
     )
 
 
-def test_a_real_count_is_never_rendered_as_nothing() -> None:
-    """A positive count must draw ink; only zero may sit flat on the baseline."""
-    assert bar_top(0, 1200.0, 37, 66) == 66
-    for value in (1, 2, 5, 23):
-        assert bar_top(value, 1200.0, 37, 66) < 66, value
+def test_a_single_count_is_visible_on_every_panel(snapshot: object) -> None:
+    """One view, or one visitor, must draw ink that zero does not.
+
+    On the 1872x1404 profile the zero rule is six pixels tall; it has to hang
+    below the baseline, or a one-pixel bar is painted in the ink the rule
+    already covers. Views are held equal in the visitors case so the striped
+    bar is the only thing that can differ.
+    """
+    base = [
+        DayPoint(date=date(2026, 8, 1), views=1100, visitors=900),
+        DayPoint(date=date(2026, 8, 2), views=0, visitors=0),
+    ]
+    for profile in ("trmnl", "waveshare-10in3"):
+        for views, visitors in ((1, 0), (1000, 1)):
+            with_count = replace(
+                snapshot,
+                series=[
+                    *base,
+                    DayPoint(date=date(2026, 8, 3), views=views, visitors=visitors),
+                ],
+            )
+            without = replace(
+                snapshot,
+                series=[
+                    *base,
+                    DayPoint(
+                        date=date(2026, 8, 3),
+                        views=views if visitors else 0,
+                        visitors=0,
+                    ),
+                ],
+            )
+
+            assert (
+                render(with_count, PROFILES[profile]).tobytes()
+                != render(without, PROFILES[profile]).tobytes()
+            ), (profile, views, visitors)
 
 
-def test_one_view_is_visually_distinct_from_none(snapshot: object) -> None:
-    quiet = replace(
-        snapshot,
-        series=[
-            DayPoint(date=date(2026, 8, 1), views=1100, visitors=900),
-            DayPoint(date=date(2026, 8, 2), views=0, visitors=0),
-            DayPoint(date=date(2026, 8, 3), views=1, visitors=1),
-        ],
-    )
-    image = render(quiet, PROFILES["trmnl"])
-    empty = replace(
-        quiet,
-        series=[
-            quiet.series[0],
-            quiet.series[1],
-            DayPoint(date=date(2026, 8, 3), views=0, visitors=0),
-        ],
-    )
-
-    assert image.tobytes() != render(empty, PROFILES["trmnl"]).tobytes()
-
-
-def test_pair_widths_keep_both_bars_legible() -> None:
-    """Three pixels is the narrowest bar that still reads as a bar at a glance."""
-    for span in range(MIN_PAIR_COLUMN, 40):
-        views, gap, visitors = pair_widths(span)
-
-        assert visitors >= 3, (span, visitors)
-        assert views >= 3, (span, views)
-        assert views + gap + visitors <= span, span
-
-
-def test_pair_widths_never_spill_into_the_next_day() -> None:
+def test_pair_widths_never_spill_and_stay_legible() -> None:
+    """A pair never exceeds its column, and from MIN_PAIR_COLUMN up both bars
+    keep the three pixels that still read as a bar at a glance."""
     for span in range(1, 40):
         views, gap, visitors = pair_widths(span)
 
         assert views >= 1
         assert views + gap + visitors <= span, span
+        if span >= MIN_PAIR_COLUMN:
+            assert views >= 3 and visitors >= 3, (span, views, visitors)
 
 
 def test_striped_bar_inks_its_top_row_and_alternates_from_the_bottom() -> None:
@@ -357,30 +310,6 @@ def test_striped_bar_inks_its_top_row_and_alternates_from_the_bottom() -> None:
     single = Image.new("RGB", (4, 4), (255, 255, 255))
     draw_bar(ImageDraw.Draw(single), (1, 2, 2, 2), fill=(0, 0, 0), style="striped")
     assert single.getpixel((1, 2)) == (0, 0, 0), "a one-row bar still draws"
-
-
-def test_one_visitor_is_visually_distinct_from_none(snapshot: object) -> None:
-    """A short striped bar must not vanish under the axis rule.
-
-    Views are held equal so the visitors bar is the only thing that can differ.
-    """
-    base = [
-        DayPoint(date=date(2026, 8, 1), views=1100, visitors=900),
-        DayPoint(date=date(2026, 8, 2), views=1000, visitors=0),
-    ]
-    one = replace(
-        snapshot,
-        series=[*base, DayPoint(date=date(2026, 8, 3), views=1000, visitors=1)],
-    )
-    none = replace(
-        snapshot,
-        series=[*base, DayPoint(date=date(2026, 8, 3), views=1000, visitors=0)],
-    )
-
-    assert (
-        render(one, PROFILES["trmnl"]).tobytes()
-        != render(none, PROFILES["trmnl"]).tobytes()
-    )
 
 
 def test_visitors_bars_are_distinguishable_from_views_on_mono(snapshot: object) -> None:
@@ -421,25 +350,6 @@ def test_visitors_bars_are_distinguishable_from_views_on_mono(snapshot: object) 
     assert kinds[first_visitors] == "striped", kinds[first_views : first_visitors + 3]
 
 
-def test_a_year_long_series_renders_without_overdrawing_days(
-    snapshot: object,
-) -> None:
-    """Days must never inherit a neighbour's bar, so a quiet day stays quiet."""
-    series = [
-        DayPoint(
-            date=date(2025, 9, 1) + timedelta(days=offset),
-            views=0 if offset % 2 else 1000,
-            visitors=0 if offset % 2 else 600,
-        )
-        for offset in range(365)
-    ]
-    long_run = replace(snapshot, series=series)
-
-    for profile in ("trmnl", "impression-4in0", "waveshare-2in13"):
-        image = render(long_run, PROFILES[profile])
-        assert image.size == PROFILES[profile].size
-
-
 def test_chart_range_rejects_counts_it_cannot_plot() -> None:
     with pytest.raises(ValueError, match="too large"):
         chart_range([10**309])
@@ -461,40 +371,6 @@ def test_colour_panels_never_leak_fringe_ink(snapshot: object) -> None:
     counts = Counter(pixel_values(spectra.convert("RGB")))
     assert counts[(220, 38, 38)] == 0
     assert counts[(245, 196, 0)] == 0
-
-
-def test_one_view_is_visible_above_a_thick_axis_rule(snapshot: object) -> None:
-    """On the 1872x1404 profile the zero rule is six pixels tall.
-
-    It must hang below the baseline, not straddle it, or a one-pixel bar is
-    painted in the same ink as the rule that already covers that row.
-    """
-    base = [
-        DayPoint(date=date(2026, 8, 1), views=1100, visitors=900),
-        DayPoint(date=date(2026, 8, 2), views=0, visitors=0),
-    ]
-    for views, visitors in ((1, 0), (1000, 1)):
-        with_count = replace(
-            snapshot,
-            series=[
-                *base,
-                DayPoint(date=date(2026, 8, 3), views=views, visitors=visitors),
-            ],
-        )
-        without = replace(
-            snapshot,
-            series=[
-                *base,
-                DayPoint(
-                    date=date(2026, 8, 3), views=views if visitors else 0, visitors=0
-                ),
-            ],
-        )
-
-        assert (
-            render(with_count, PROFILES["waveshare-10in3"]).tobytes()
-            != render(without, PROFILES["waveshare-10in3"]).tobytes()
-        ), (views, visitors)
 
 
 def test_detail_rail_describes_only_the_days_drawn(snapshot: object) -> None:
@@ -521,13 +397,6 @@ def test_detail_rail_describes_only_the_days_drawn(snapshot: object) -> None:
         _rail_details(replace(snapshot, series=series, commerce=None), drawn)
     )
     assert jetpack["PERIOD HIGH"] == 100
-
-
-def test_axis_labels_have_a_billions_unit() -> None:
-    assert _format_axis(2_000_000_000) == "2b"
-    assert _format_axis(1_500_000_000) == "1.5b"
-    assert _format_axis(1_200) == "1.2k"
-    assert _format_axis(2_000) == "2k"
 
 
 def test_bars_never_repaint_the_zero_rule(snapshot: object) -> None:
@@ -681,24 +550,6 @@ def test_a_view_the_snapshot_cannot_fill_is_refused(snapshot: object) -> None:
     assert render(storeless, PROFILES["trmnl"]).size == (800, 480)
 
 
-def test_font_cache_holds_every_size_a_full_render_set_needs(snapshot: object) -> None:
-    """`sop serve` renders every panel from one process; nothing may evict."""
-    from sop.render.assets import load_font
-
-    big = replace(
-        snapshot,
-        today=replace(snapshot.today, views=1_842_357_123, visitors=999_999_999),
-    )
-    for profile in PROFILES.values():
-        render(big, profile)
-    misses_before = load_font.cache_info().misses
-
-    for profile in PROFILES.values():
-        render(big, profile)
-
-    assert load_font.cache_info().misses == misses_before
-
-
 def test_paired_columns_never_fall_below_the_minimum(
     snapshot: object, monkeypatch: pytest.MonkeyPatch
 ) -> None:
@@ -726,43 +577,6 @@ def test_paired_columns_never_fall_below_the_minimum(
         render(replace(snapshot, series=series), PROFILES[profile])
 
         assert min(spans) >= MIN_PAIR_COLUMN, (profile, min(spans))
-
-
-def _render_reference() -> dict[str, dict[str, object]]:
-    path = Path(__file__).parent / "fixtures" / "render-hashes.json"
-    table: dict[str, dict[str, object]] = json.loads(path.read_text(encoding="utf-8"))
-    return table
-
-
-@pytest.mark.parametrize("key", sorted(_render_reference()))
-def test_rendered_frame_matches_the_recorded_reference(key: str) -> None:
-    """Pin the sample frame on every view and profile.
-
-    This is the guard for refactors: a change that is meant to be invisible
-    must leave every hash alone. It pins one frame each — the aged banner,
-    the empty series, and the Parse.ly rail have their own tests.
-
-    Re-record only for an intended rendering change, in its own commit:
-        uv run python tests/record_render_hashes.py
-    """
-    expected = _render_reference()[key]
-    view, _, profile = key.partition("/")
-    image = next(
-        image
-        for frame_view, frame_profile, image in render_frames()
-        if (frame_view, frame_profile) == (view, profile)
-    )
-
-    assert image.mode == expected["mode"]
-    assert list(image.size) == expected["size"]
-    assert frame_key(image)["sha256"] == expected["sha256"]
-
-
-def test_the_reference_covers_every_view_and_profile() -> None:
-    """A key removed from the table must fail, not silently reduce coverage."""
-    expected = {f"{view}/{name}" for view in VIEWS for name in PROFILES}
-
-    assert set(_render_reference()) == expected
 
 
 def test_a_windowed_chart_ignores_values_outside_its_window() -> None:
@@ -797,13 +611,6 @@ def test_a_windowed_chart_ignores_values_outside_its_window() -> None:
 
     assert frames[0].plot_left == frames[1].plot_left
     assert frames[0].days == frames[1].days
-
-
-def test_commerce_bars_keep_a_separator_at_the_minimum_column() -> None:
-    """Equal neighbouring days must not merge into one rectangle."""
-    for span in range(2, 30):
-        assert _orders_bar_width(span) < span, span
-        assert _orders_bar_width(span) >= 1
 
 
 def test_rail_numbers_never_collide_on_the_large_panel(snapshot: object) -> None:

@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+import pytest
+
 from sop.cache import SnapshotCache
 from sop.http_service import create_app
+from sop.render.layout import UnsupportedView
 from sop.service import SnapshotService
 
 
@@ -44,16 +47,6 @@ def test_screen_route_returns_png(tmp_path: object, snapshot: object) -> None:
     assert unchanged.data == b""
 
 
-def test_unknown_panel_or_view_is_a_client_error(
-    tmp_path: object, snapshot: object
-) -> None:
-    service = SnapshotService(cache=SnapshotCache(tmp_path), fetch=lambda: snapshot)
-    client = create_app(service, bearer_token=None, cache_max_age=600).test_client()
-
-    assert client.get("/v1/screen.png?panel=unknown").status_code == 400
-    assert client.get("/v1/screen.png?view=nope").status_code == 400
-
-
 def test_view_selects_the_screen(tmp_path: object, snapshot: object) -> None:
     service = SnapshotService(cache=SnapshotCache(tmp_path), fetch=lambda: snapshot)
     client = create_app(service, bearer_token=None, cache_max_age=600).test_client()
@@ -66,15 +59,14 @@ def test_view_selects_the_screen(tmp_path: object, snapshot: object) -> None:
     assert commerce.data != stats.data
 
 
-def test_a_view_the_server_cannot_serve_is_refused_at_startup(
-    tmp_path: object, snapshot: object
-) -> None:
-    """A typo in SOP_VIEW must fail once, not 400 every request forever."""
-    import pytest
-
-    from sop.render.layout import UnsupportedView
-
+def test_a_bad_panel_or_view_is_refused(tmp_path: object, snapshot: object) -> None:
+    """Per request it is the caller's fault (400); a typo in SOP_VIEW must
+    fail once at startup, not 400 every request forever."""
     service = SnapshotService(cache=SnapshotCache(tmp_path), fetch=lambda: snapshot)
+    client = create_app(service, bearer_token=None, cache_max_age=600).test_client()
+
+    assert client.get("/v1/screen.png?panel=unknown").status_code == 400
+    assert client.get("/v1/screen.png?view=nope").status_code == 400
 
     with pytest.raises(UnsupportedView, match="Unknown view 'nope'"):
         create_app(service, bearer_token=None, cache_max_age=600, default_view="nope")

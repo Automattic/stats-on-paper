@@ -69,28 +69,29 @@ def _wire_payload(fixture_dir: Path) -> dict[str, Any]:
     return snapshot.to_public_json(now=snapshot.fetched_at)
 
 
-def test_every_layout_is_present() -> None:
-    """Guard the loop below: an empty directory must not pass vacuously."""
+def test_every_layout_renders_against_the_wire_contract(fixture_dir: Path) -> None:
+    """Both sides of `{% if commerce %}` run against the real payload.
+
+    The directory listing is checked first so an empty directory cannot pass
+    vacuously.
+    """
     assert sorted(path.stem for path in TEMPLATES.glob("*.liquid")) == sorted(
         [*LAYOUTS, "shared"]
     )
 
+    for layout in LAYOUTS:
+        for has_commerce in (True, False):
+            payload = _wire_payload(fixture_dir)
+            if not has_commerce:
+                payload["commerce"] = None
 
-@pytest.mark.parametrize("layout", LAYOUTS)
-@pytest.mark.parametrize("has_commerce", [True, False])
-def test_layout_renders_against_the_wire_contract(
-    layout: str, has_commerce: bool, fixture_dir: Path
-) -> None:
-    """Both sides of `{% if commerce %}` run against the real payload."""
-    payload = _wire_payload(fixture_dir)
-    if not has_commerce:
-        payload["commerce"] = None
+            output = (
+                _environment().from_string(_layout_source(layout)).render(**payload)
+            )
 
-    output = _environment().from_string(_layout_source(layout)).render(**payload)
-
-    assert f"view--{layout}" in output
-    # Rendered through TRMNL's own delimiter filter, as the device would.
-    assert f"{payload['today']['views']:,}" in output
+            assert f"view--{layout}" in output, (layout, has_commerce)
+            # Rendered through TRMNL's own delimiter filter, as the device would.
+            assert f"{payload['today']['views']:,}" in output, (layout, has_commerce)
 
 
 def test_a_template_that_drifts_from_the_contract_fails(fixture_dir: Path) -> None:
