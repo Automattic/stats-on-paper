@@ -15,6 +15,8 @@ classifiers = [
   "License :: OSI Approved :: GNU General Public License v2 or later (GPLv2+)",
   "Programming Language :: Python :: 3",
   "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
   "Topic :: System :: Hardware",
 ]
 dependencies = [
@@ -33,6 +35,12 @@ waveshare = []
 
 [project.scripts]
 sop = "sop.cli:main"
+
+[project.urls]
+Homepage = "https://github.com/Automattic/stats-on-paper"
+Repository = "https://github.com/Automattic/stats-on-paper"
+Issues = "https://github.com/Automattic/stats-on-paper/issues"
+Changelog = "https://github.com/Automattic/stats-on-paper/blob/main/CHANGELOG.md"
 
 [dependency-groups]
 dev = [
@@ -62,9 +70,13 @@ include = [
   "/tests",
   "/trmnl",
   "/.env.example",
+  "/ARCHITECTURE.md",
+  "/CHANGELOG.md",
+  "/CONTRIBUTING.md",
   "/COPYRIGHT.md",
   "/LICENSE",
   "/README.md",
+  "/SECURITY.md",
 ]
 
 [tool.pytest.ini_options]
