@@ -10,10 +10,10 @@ from pathlib import Path
 import pytest
 from record_render_hashes import frame_key, render_frames
 
-from jsp.models import Commerce, DayOrders, DayPoint
-from jsp.render import render
-from jsp.render.assets import logo_image
-from jsp.render.chart import (
+from sop.models import Commerce, DayOrders, DayPoint
+from sop.render import render
+from sop.render.assets import logo_image
+from sop.render.chart import (
     MIN_PAIR_COLUMN,
     _format_axis,
     _orders_bar_width,
@@ -26,11 +26,11 @@ from jsp.render.chart import (
     pair_widths,
     visible_days,
 )
-from jsp.render.format import trend_period_label
-from jsp.render.layout import VIEWS, UnsupportedView, _fit_count, _rail_details
-from jsp.render.output import pixel_values
-from jsp.render.palette import PROFILES
-from jsp.render.text import text_width
+from sop.render.format import trend_period_label
+from sop.render.layout import VIEWS, UnsupportedView, _fit_count, _rail_details
+from sop.render.output import pixel_values
+from sop.render.palette import PROFILES
+from sop.render.text import text_width
 
 
 @pytest.mark.parametrize(
@@ -617,7 +617,7 @@ def test_a_windowed_render_matches_the_window_rendered_alone(
     Hooked at `chart_frame` because it is the one place every view's window
     is chosen, whichever chart draws it.
     """
-    import jsp.render.chart as chart_module
+    import sop.render.chart as chart_module
 
     drawn_lengths: list[int] = []
     real = chart_module.chart_frame
@@ -682,8 +682,8 @@ def test_a_view_the_snapshot_cannot_fill_is_refused(snapshot: object) -> None:
 
 
 def test_font_cache_holds_every_size_a_full_render_set_needs(snapshot: object) -> None:
-    """`jsp serve` renders every panel from one process; nothing may evict."""
-    from jsp.render.assets import load_font
+    """`sop serve` renders every panel from one process; nothing may evict."""
+    from sop.render.assets import load_font
 
     big = replace(
         snapshot,
@@ -703,7 +703,7 @@ def test_paired_columns_never_fall_below_the_minimum(
     snapshot: object, monkeypatch: pytest.MonkeyPatch
 ) -> None:
     """The gutter must be measured before the window is chosen, not guessed."""
-    import jsp.render.chart as chart_module
+    import sop.render.chart as chart_module
 
     spans: list[int] = []
     real = chart_module.bar_columns
@@ -773,8 +773,8 @@ def test_a_windowed_chart_ignores_values_outside_its_window() -> None:
     """
     from PIL import Image, ImageDraw
 
-    from jsp.render.assets import load_font
-    from jsp.render.palette import layout_colors
+    from sop.render.assets import load_font
+    from sop.render.palette import layout_colors
 
     draw = ImageDraw.Draw(Image.new("RGB", (800, 480)))
     colors = layout_colors(PROFILES["trmnl"], "wpcom")

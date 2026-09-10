@@ -6,7 +6,7 @@ from math import ceil
 
 from PIL import ImageDraw, ImageFont
 
-from jsp.render.assets import load_font
+from sop.render.assets import load_font
 
 
 def text_width(

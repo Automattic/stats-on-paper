@@ -8,7 +8,7 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
-from jsp.models import SnapshotFormatError, StatsSnapshot, snapshot_from_public_json
+from sop.models import SnapshotFormatError, StatsSnapshot, snapshot_from_public_json
 
 
 class CacheError(RuntimeError):

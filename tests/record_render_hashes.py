@@ -18,10 +18,10 @@ from pathlib import Path
 
 from PIL import Image
 
-from jsp.models import snapshot_from_public_json
-from jsp.render import render
-from jsp.render.layout import VIEWS
-from jsp.render.palette import PROFILES
+from sop.models import snapshot_from_public_json
+from sop.render import render
+from sop.render.layout import VIEWS
+from sop.render.palette import PROFILES
 
 FIXTURES = Path(__file__).parent / "fixtures"
 TABLE_PATH = FIXTURES / "render-hashes.json"

@@ -6,7 +6,7 @@ from collections.abc import Sized
 from datetime import UTC
 from urllib.parse import urlsplit
 
-from jsp.models import StatsSnapshot
+from sop.models import StatsSnapshot
 
 AGED_AFTER_SECONDS = 2 * 60 * 60
 

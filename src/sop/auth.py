@@ -15,7 +15,7 @@ from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 import requests
 
-from jsp.config import Config
+from sop.config import Config
 
 AUTHORIZE_URL = "https://public-api.wordpress.com/oauth2/authorize"
 TOKEN_URL = "https://public-api.wordpress.com/oauth2/token"
@@ -35,7 +35,7 @@ def load_token_payload(path: Path) -> dict[str, Any]:
         payload = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError as error:
         raise AuthError(
-            f"No token found at {path}. Run `jsp login --manual` first."
+            f"No token found at {path}. Run `sop login --manual` first."
         ) from error
     except (OSError, json.JSONDecodeError) as error:
         raise AuthError(f"Could not read token file {path}: {error}") from error
@@ -227,7 +227,7 @@ class _CallbackHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         host = self.headers.get("Host", "localhost")
         self.server.redirect_url = f"http://{host}{self.path}"
-        body = b"Login received. You can close this tab and return to jsp.\n"
+        body = b"Login received. You can close this tab and return to sop.\n"
         self.send_response(200)
         self.send_header("Content-Type", "text/plain; charset=utf-8")
         self.send_header("Content-Length", str(len(body)))

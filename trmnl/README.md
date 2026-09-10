@@ -1,14 +1,14 @@
-# Jetpack Stats on a TRMNL
+# Stats on a TRMNL
 
-TRMNL renders these templates on its own servers from JSON your `jsp serve`
+TRMNL renders these templates on its own servers from JSON your `sop serve`
 publishes, so the device needs no hardware work and no code from this
 repository. This is the zero-soldering path in the tutorial.
 
 ## What you need
 
-1. **A reachable `jsp serve`.** TRMNL's servers fetch the URL, so it must be
-   public and HTTPS. Put a real proxy in front of `jsp serve`; it is Flask's
-   development server. Set `JSP_SERVE_TOKEN` — without it the app refuses to
+1. **A reachable `sop serve`.** TRMNL's servers fetch the URL, so it must be
+   public and HTTPS. Put a real proxy in front of `sop serve`; it is Flask's
+   development server. Set `SOP_SERVE_TOKEN` — without it the app refuses to
    bind to anything but localhost.
 2. **TRMNL Developer Edition**, which is what unlocks private plugins. It is
    reached by adding the developer add-on to an existing device, by choosing
@@ -22,7 +22,7 @@ In TRMNL: **Plugins → Private Plugin → Create**.
 | --- | --- |
 | Strategy | `Polling` |
 | Polling URL | `https://your-host/v1/stats.json` |
-| Polling Header | `Authorization=Bearer YOUR_JSP_SERVE_TOKEN` |
+| Polling Header | `Authorization=Bearer YOUR_SOP_SERVE_TOKEN` |
 | Refresh rate | 15 minutes or longer |
 
 The header value is compared exactly, so the lowercase `bearer` in TRMNL's own
@@ -72,4 +72,4 @@ frame the e-ink panels draw.
 Not eligible, and not planned. TRMNL's marketplace recipes are meant to run
 without a third-party server or user authentication; this one needs both — your
 own host and your own token. Share the template files instead: each person
-points a private plugin at their own `jsp serve`.
+points a private plugin at their own `sop serve`.

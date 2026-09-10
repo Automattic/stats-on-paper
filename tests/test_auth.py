@@ -4,13 +4,13 @@ import json
 import stat
 from pathlib import Path
 
-from jsp.auth import (
+from sop.auth import (
     build_authorize_url,
     load_access_token,
     save_token,
     token_matches_site,
 )
-from jsp.config import Config
+from sop.config import Config
 
 
 def _config(scope: str) -> Config:

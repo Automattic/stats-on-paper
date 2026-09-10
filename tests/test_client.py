@@ -5,7 +5,7 @@ from unittest.mock import Mock
 import pytest
 import requests
 
-from jsp.client import (
+from sop.client import (
     API_V1_BASE_URL,
     AuthenticationError,
     StatsClient,
@@ -54,10 +54,10 @@ def test_client_does_not_retry_authentication(
     session.headers = {}
     session.get.return_value = response(401, {"error": "unauthorized"})
     sleep = Mock()
-    monkeypatch.setattr("jsp.client.time.sleep", sleep)
+    monkeypatch.setattr("sop.client.time.sleep", sleep)
     client = StatsClient(token="bad", site="example.com", session=session)
 
-    with pytest.raises(AuthenticationError, match="jsp login --manual"):
+    with pytest.raises(AuthenticationError, match="sop login --manual"):
         client.summary(date="2026-07-27")
 
     assert session.get.call_count == 1
@@ -72,7 +72,7 @@ def test_client_retries_server_errors(monkeypatch: pytest.MonkeyPatch) -> None:
         response(503, {"error": "down"}),
         response(503, {"error": "down"}),
     ]
-    monkeypatch.setattr("jsp.client.time.sleep", Mock())
+    monkeypatch.setattr("sop.client.time.sleep", Mock())
     client = StatsClient(token="token", site="example.com", session=session)
 
     with pytest.raises(TransientClientError):

@@ -11,23 +11,23 @@ from zoneinfo import ZoneInfo
 
 import requests
 
-from jsp.auth import (
+from sop.auth import (
     AuthError,
     granted_blog,
     load_access_token,
     load_token_payload,
     token_matches_site,
 )
-from jsp.cache import CacheError, SnapshotCache
-from jsp.client import (
+from sop.cache import CacheError, SnapshotCache
+from sop.client import (
     AuthenticationError,
     ClientError,
     ResponseError,
     StatsClient,
     TransientClientError,
 )
-from jsp.config import Config
-from jsp.models import (
+from sop.config import Config
+from sop.models import (
     Commerce,
     DayOrders,
     DayPoint,
@@ -97,7 +97,7 @@ def build_service(config: Config) -> SnapshotService:
     cache = SnapshotCache(config.cache_dir)
     if config.source == "url":
         if not config.source_url:
-            raise SnapshotUnavailable("JSP_SOURCE=url requires JSP_SOURCE_URL.")
+            raise SnapshotUnavailable("SOP_SOURCE=url requires SOP_SOURCE_URL.")
         source_url = config.source_url
         return SnapshotService(
             cache=cache,
@@ -117,7 +117,7 @@ def build_service(config: Config) -> SnapshotService:
     else:
         raise AuthError(
             f"The saved token grants {granted_blog(payload)}, but WPCOM_SITE "
-            f"is {config.site}. Run `jsp login --manual` to authorize "
+            f"is {config.site}. Run `sop login --manual` to authorize "
             f"{config.site}."
         )
     client = StatsClient(token=token, site=config.site)
@@ -340,7 +340,7 @@ def _fetch_from_url(url: str, *, token: str | None) -> StatsSnapshot:
     response = requests.get(endpoint, headers=headers, timeout=20)
     if response.status_code in {401, 403}:
         raise AuthenticationError(
-            f"The snapshot server rejected JSP_SERVE_TOKEN ({response.status_code})."
+            f"The snapshot server rejected SOP_SERVE_TOKEN ({response.status_code})."
         )
     response.raise_for_status()
     return snapshot_from_public_json(response.json())

@@ -7,16 +7,16 @@ from datetime import UTC, datetime, timedelta
 
 from PIL import Image, ImageDraw, ImageFont
 
-from jsp.models import Commerce, DayOrders, DayPoint, StatsSnapshot
-from jsp.render.assets import load_font, logo_image, source_label
-from jsp.render.chart import (
+from sop.models import Commerce, DayOrders, DayPoint, StatsSnapshot
+from sop.render.assets import load_font, logo_image, source_label
+from sop.render.chart import (
     bar_sparkline,
     draw_bar,
     draw_chart_legend,
     grouped_bar_chart,
     orders_bar_chart,
 )
-from jsp.render.format import (
+from sop.render.format import (
     AGED_AFTER_SECONDS,
     compact_count,
     safe_ratio,
@@ -24,9 +24,9 @@ from jsp.render.format import (
     trend_period_label,
     updated_label,
 )
-from jsp.render.output import quantize
-from jsp.render.palette import BACKGROUND, LayoutColors, PanelProfile, layout_colors
-from jsp.render.text import draw_right_text, fit_middle_text, font_to_fit, text_width
+from sop.render.output import quantize
+from sop.render.palette import BACKGROUND, LayoutColors, PanelProfile, layout_colors
+from sop.render.text import draw_right_text, fit_middle_text, font_to_fit, text_width
 
 _Layout = Callable[
     [Image.Image, ImageDraw.ImageDraw, StatsSnapshot, int, LayoutColors, PanelProfile],

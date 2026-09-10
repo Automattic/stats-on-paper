@@ -370,54 +370,6 @@ wheels = [
 ]
 
 [[package]]
-name = "jetpack-stats-on-paper"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "flask" },
-    { name = "pillow" },
-    { name = "python-dotenv" },
-    { name = "requests" },
-]
-
-[package.optional-dependencies]
-inky = [
-    { name = "inky" },
-]
-
-[package.dev-dependencies]
-dev = [
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "pytest-cov" },
-    { name = "python-liquid" },
-    { name = "responses" },
-    { name = "ruff" },
-    { name = "types-requests" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "flask", specifier = ">=3.1,<4" },
-    { name = "inky", marker = "extra == 'inky'", specifier = ">=2.2,<3" },
-    { name = "pillow", specifier = ">=11,<13" },
-    { name = "python-dotenv", specifier = ">=1.0,<2" },
-    { name = "requests", specifier = ">=2.32,<3" },
-]
-provides-extras = ["inky", "waveshare"]
-
-[package.metadata.requires-dev]
-dev = [
-    { name = "mypy", specifier = ">=1.15" },
-    { name = "pytest", specifier = ">=8.3" },
-    { name = "pytest-cov", specifier = ">=6" },
-    { name = "python-liquid", specifier = ">=2.3.1" },
-    { name = "responses", specifier = ">=0.25" },
-    { name = "ruff", specifier = ">=0.11" },
-    { name = "types-requests", specifier = ">=2.32" },
-]
-
-[[package]]
 name = "jinja2"
 version = "3.1.6"
 source = { registry = "https://pypi.org/simple" }
@@ -1105,6 +1057,54 @@ name = "spidev"
 version = "3.8"
 source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/67/87/039b6eeea781598015b538691bc174cc0bf77df9d4d2d3b8bf9245c0de8c/spidev-3.8.tar.gz", hash = "sha256:2bc02fb8c6312d519ebf1f4331067427c0921d3f77b8bcaf05189a2e8b8382c0", size = 13893, upload-time = "2025-09-15T18:56:20.672Z" }
+
+[[package]]
+name = "stats-on-paper"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "flask" },
+    { name = "pillow" },
+    { name = "python-dotenv" },
+    { name = "requests" },
+]
+
+[package.optional-dependencies]
+inky = [
+    { name = "inky" },
+]
+
+[package.dev-dependencies]
+dev = [
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "pytest-cov" },
+    { name = "python-liquid" },
+    { name = "responses" },
+    { name = "ruff" },
+    { name = "types-requests" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "flask", specifier = ">=3.1,<4" },
+    { name = "inky", marker = "extra == 'inky'", specifier = ">=2.2,<3" },
+    { name = "pillow", specifier = ">=11,<13" },
+    { name = "python-dotenv", specifier = ">=1.0,<2" },
+    { name = "requests", specifier = ">=2.32,<3" },
+]
+provides-extras = ["inky", "waveshare"]
+
+[package.metadata.requires-dev]
+dev = [
+    { name = "mypy", specifier = ">=1.15" },
+    { name = "pytest", specifier = ">=8.3" },
+    { name = "pytest-cov", specifier = ">=6" },
+    { name = "python-liquid", specifier = ">=2.3.1" },
+    { name = "responses", specifier = ">=0.25" },
+    { name = "ruff", specifier = ">=0.11" },
+    { name = "types-requests", specifier = ">=2.32" },
+]
 
 [[package]]
 name = "tomli"

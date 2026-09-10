@@ -15,11 +15,11 @@ class Panel(Protocol):
 
 def open_panel(name: str) -> Panel:
     if name == "waveshare-4in26":
-        from jsp.panels.waveshare import Waveshare4in26
+        from sop.panels.waveshare import Waveshare4in26
 
         return Waveshare4in26()
     if name in {"impression-4in0", "impression-7in3"}:
-        from jsp.panels.inky import InkyImpression
+        from sop.panels.inky import InkyImpression
 
         return InkyImpression()
     raise ValueError(f"Panel {name!r} is render-only and has no local driver.")

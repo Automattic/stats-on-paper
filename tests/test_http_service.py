@@ -1,8 +1,8 @@
 from __future__ import annotations
 
-from jsp.cache import SnapshotCache
-from jsp.http_service import create_app
-from jsp.service import SnapshotService
+from sop.cache import SnapshotCache
+from sop.http_service import create_app
+from sop.service import SnapshotService
 
 
 def test_stats_route_is_root_level_and_authenticated(
@@ -69,10 +69,10 @@ def test_view_selects_the_screen(tmp_path: object, snapshot: object) -> None:
 def test_a_view_the_server_cannot_serve_is_refused_at_startup(
     tmp_path: object, snapshot: object
 ) -> None:
-    """A typo in JSP_VIEW must fail once, not 400 every request forever."""
+    """A typo in SOP_VIEW must fail once, not 400 every request forever."""
     import pytest
 
-    from jsp.render.layout import UnsupportedView
+    from sop.render.layout import UnsupportedView
 
     service = SnapshotService(cache=SnapshotCache(tmp_path), fetch=lambda: snapshot)
 

@@ -1,4 +1,4 @@
-"""The ``jsp`` command-line interface."""
+"""The ``sop`` command-line interface."""
 
 from __future__ import annotations
 
@@ -9,21 +9,21 @@ import sys
 from collections.abc import Sequence
 from pathlib import Path
 
-from jsp.auth import login
-from jsp.config import ConfigError, load_config, require
-from jsp.http_service import create_app
-from jsp.panels.base import open_panel
-from jsp.render import render
-from jsp.render.layout import VIEWS, UnsupportedView
-from jsp.render.palette import PROFILES, get_profile
-from jsp.service import build_service
+from sop.auth import login
+from sop.config import ConfigError, load_config, require
+from sop.http_service import create_app
+from sop.panels.base import open_panel
+from sop.render import render
+from sop.render.layout import VIEWS, UnsupportedView
+from sop.render.palette import PROFILES, get_profile
+from sop.service import build_service
 
-LOGGER = logging.getLogger("jsp")
+LOGGER = logging.getLogger("sop")
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="jsp", description="Put Jetpack stats on e-ink."
+        prog="sop", description="Put your site's stats on e-ink."
     )
     subparsers = parser.add_subparsers(dest="command", required=True)
 
@@ -89,7 +89,7 @@ def run(argv: Sequence[str] | None = None) -> int:
             # The renderer sits below the configuration seam and cannot name a
             # variable; here we can.
             raise ConfigError(
-                f"{error} Set JSP_COMMERCE=true on the process that fetches."
+                f"{error} Set SOP_COMMERCE=true on the process that fetches."
             ) from error
     else:
         image = None
@@ -120,7 +120,7 @@ def run(argv: Sequence[str] | None = None) -> int:
             "::1",
         }:
             raise ConfigError(
-                "JSP_SERVE_TOKEN is unset, so jsp serve will only bind to "
+                "SOP_SERVE_TOKEN is unset, so sop serve will only bind to "
                 "localhost. Set it before using --host on a network interface."
             )
         app = create_app(
@@ -140,7 +140,7 @@ def main() -> None:
     try:
         status = run()
     except (ConfigError, RuntimeError, ValueError) as error:
-        print(f"jsp: error: {error}", file=sys.stderr)
+        print(f"sop: error: {error}", file=sys.stderr)
         status = 1
     raise SystemExit(status)
 

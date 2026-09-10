@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from PIL import Image
 
-from jsp.render.palette import PanelProfile
+from sop.render.palette import PanelProfile
 
 
 def quantize(image: Image.Image, profile: PanelProfile) -> Image.Image:

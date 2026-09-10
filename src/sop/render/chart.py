@@ -8,10 +8,10 @@ from typing import TypeVar
 
 from PIL import ImageDraw, ImageFont
 
-from jsp.models import DayOrders, DayPoint
-from jsp.render.assets import load_font
-from jsp.render.palette import LayoutColors
-from jsp.render.text import draw_right_text, font_height, text_width
+from sop.models import DayOrders, DayPoint
+from sop.render.assets import load_font
+from sop.render.palette import LayoutColors
+from sop.render.text import draw_right_text, font_height, text_width
 
 # A paired column needs 3px per bar, 1px between them, 1px between days.
 MIN_PAIR_COLUMN = 8

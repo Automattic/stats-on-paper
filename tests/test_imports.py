@@ -3,16 +3,16 @@ from pathlib import Path
 
 
 def test_package_imports_without_gpio() -> None:
-    import jsp
-    import jsp.panels.inky
-    import jsp.panels.waveshare
+    import sop
+    import sop.panels.inky
+    import sop.panels.waveshare
 
-    assert jsp.__version__
-    assert files("jsp").joinpath("py.typed").is_file()
+    assert sop.__version__
+    assert files("sop").joinpath("py.typed").is_file()
 
 
 def test_runtime_brand_assets_are_available() -> None:
-    packaged = files("jsp").joinpath("assets", "logos")
+    packaged = files("sop").joinpath("assets", "logos")
     repository = Path(__file__).parents[1] / "assets" / "logos"
 
     for filename in ("jetpack-mark.png", "parsely-mark.png"):

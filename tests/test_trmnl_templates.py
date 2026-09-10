@@ -1,4 +1,4 @@
-"""The TRMNL templates must render against the JSON `jsp serve` actually sends.
+"""The TRMNL templates must render against the JSON `sop serve` actually sends.
 
 Rendered with a real Liquid engine rather than pattern-matched, so a missing
 root variable, a missing nested key, and an unknown filter all fail here
@@ -16,7 +16,7 @@ import pytest
 from liquid import DictLoader, Environment, StrictUndefined
 from liquid.exceptions import LiquidError
 
-from jsp.models import snapshot_from_public_json
+from sop.models import snapshot_from_public_json
 
 TEMPLATES = Path(__file__).parents[1] / "trmnl"
 LAYOUTS = ("full", "half_horizontal", "half_vertical", "quadrant")

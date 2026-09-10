@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from jsp.models import (
+from sop.models import (
     Commerce,
     DayOrders,
     DayPoint,
@@ -29,7 +29,7 @@ def no_real_network(monkeypatch: pytest.MonkeyPatch) -> None:
 def no_real_dotenv(monkeypatch: pytest.MonkeyPatch) -> None:
     """Keep the suite hermetic: never read a developer's real .env file."""
 
-    monkeypatch.setattr("jsp.config.load_dotenv", lambda: None)
+    monkeypatch.setattr("sop.config.load_dotenv", lambda: None)
 
 
 @pytest.fixture

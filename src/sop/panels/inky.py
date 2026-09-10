@@ -14,7 +14,7 @@ class InkyImpression:
         except ImportError as error:
             raise RuntimeError(
                 "The Inky driver is not installed. Run `pip install "
-                '"jetpack-stats-on-paper[inky]"`.'
+                '"stats-on-paper[inky]"`.'
             ) from error
         self._display: Any = auto()
 

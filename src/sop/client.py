@@ -109,7 +109,7 @@ class StatsClient:
             if response.status_code in {401, 403}:
                 raise AuthenticationError(
                     "WordPress.com rejected the token "
-                    f"({response.status_code}). Run `jsp login --manual` again."
+                    f"({response.status_code}). Run `sop login --manual` again."
                 )
 
             if response.status_code >= 500:

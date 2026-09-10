@@ -7,9 +7,9 @@ from datetime import UTC, datetime, timedelta
 
 import pytest
 
-from jsp.cache import SnapshotCache
-from jsp.client import AuthenticationError, ResponseError, TransientClientError
-from jsp.service import ApiShapeError, SnapshotService, SnapshotUnavailable
+from sop.cache import SnapshotCache
+from sop.client import AuthenticationError, ResponseError, TransientClientError
+from sop.service import ApiShapeError, SnapshotService, SnapshotUnavailable
 
 
 def test_cache_hit_skips_fetch(tmp_path: object, snapshot: object) -> None:

@@ -7,9 +7,9 @@ from typing import Any
 
 import pytest
 
-from jsp.config import Config
-from jsp.models import Commerce, DayOrders, SiteRef, Totals
-from jsp.service import (
+from sop.config import Config
+from sop.models import Commerce, DayOrders, SiteRef, Totals
+from sop.service import (
     ApiShapeError,
     parse_all_time,
     parse_commerce,

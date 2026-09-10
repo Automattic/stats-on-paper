@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 
 import pytest
 
-from jsp.models import SnapshotFormatError, snapshot_from_public_json
+from sop.models import SnapshotFormatError, snapshot_from_public_json
 
 
 def test_public_json_has_root_keys_and_truthful_age(snapshot: object) -> None:

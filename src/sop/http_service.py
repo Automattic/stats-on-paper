@@ -12,10 +12,10 @@ from typing import Any, TypeVar, cast
 from flask import Flask, Response, jsonify, request, send_file
 from flask.json.provider import DefaultJSONProvider
 
-from jsp.render import render
-from jsp.render.layout import VIEWS, UnsupportedView
-from jsp.render.palette import get_profile
-from jsp.service import SnapshotService
+from sop.render import render
+from sop.render.layout import VIEWS, UnsupportedView
+from sop.render.palette import get_profile
+from sop.service import SnapshotService
 
 _F = TypeVar("_F", bound=Callable[..., Any])
 

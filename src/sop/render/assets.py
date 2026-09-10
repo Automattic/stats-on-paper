@@ -9,21 +9,21 @@ from typing import cast
 
 from PIL import Image, ImageFont
 
-from jsp.render.format import truncate
-from jsp.render.output import pixel_values
+from sop.render.format import truncate
+from sop.render.output import pixel_values
 
 
 def _asset_path(kind: str, filename: str) -> Path:
     """Find a bundled asset in the installed package, else the repository."""
 
-    packaged = files("jsp").joinpath("assets", kind, filename)
+    packaged = files("sop").joinpath("assets", kind, filename)
     if packaged.is_file():
         return Path(str(packaged))
     repository = Path(__file__).resolve().parents[3] / "assets" / kind / filename
     if repository.is_file():
         return repository
     raise RuntimeError(
-        f"Bundled asset {filename} is missing; reinstall jetpack-stats-on-paper."
+        f"Bundled asset {filename} is missing; reinstall stats-on-paper."
     )
 
 

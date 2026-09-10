@@ -3,9 +3,9 @@ requires = ["hatchling>=1.27"]
 build-backend = "hatchling.build"
 
 [project]
-name = "jetpack-stats-on-paper"
+name = "stats-on-paper"
 version = "0.1.0"
-description = "Put WordPress and Jetpack stats on Waveshare, Inky, and TRMNL e-ink displays."
+description = "Put your WordPress.com or Jetpack site's stats on Waveshare, Inky, and TRMNL e-ink displays."
 readme = "README.md"
 requires-python = ">=3.11"
 license = "GPL-2.0-or-later"
@@ -32,7 +32,7 @@ inky = ["inky>=2.2,<3"]
 waveshare = []
 
 [project.scripts]
-jsp = "jsp.cli:main"
+sop = "sop.cli:main"
 
 [dependency-groups]
 dev = [
@@ -46,14 +46,14 @@ dev = [
 ]
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/jsp"]
+packages = ["src/sop"]
 
 [tool.hatch.build.targets.wheel.force-include]
 # Only what the renderer loads. The logo SVGs and their provenance README are
 # source material for the raster marks, not runtime assets.
-"assets/fonts" = "jsp/assets/fonts"
-"assets/logos/jetpack-mark.png" = "jsp/assets/logos/jetpack-mark.png"
-"assets/logos/parsely-mark.png" = "jsp/assets/logos/parsely-mark.png"
+"assets/fonts" = "sop/assets/fonts"
+"assets/logos/jetpack-mark.png" = "sop/assets/logos/jetpack-mark.png"
+"assets/logos/parsely-mark.png" = "sop/assets/logos/parsely-mark.png"
 
 [tool.hatch.build.targets.sdist]
 include = [
@@ -82,4 +82,4 @@ allowed-confusables = ["×"]
 [tool.mypy]
 python_version = "3.11"
 strict = true
-packages = ["jsp"]
+packages = ["sop"]

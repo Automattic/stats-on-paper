@@ -45,9 +45,9 @@ _ENV_FOR_FIELD = {
     "client_id": "WPCOM_CLIENT_ID",
     "client_secret": "WPCOM_CLIENT_SECRET",
     "site": "WPCOM_SITE",
-    "source_url": "JSP_SOURCE_URL",
-    "serve_token": "JSP_SERVE_TOKEN",
-    "panel": "JSP_PANEL",
+    "source_url": "SOP_SOURCE_URL",
+    "serve_token": "SOP_SERVE_TOKEN",
+    "panel": "SOP_PANEL",
 }
 
 
@@ -90,17 +90,17 @@ def load_config(*, required: tuple[str, ...] = ()) -> Config:
         "global" if scope_value == "global" else "stats"
     )
 
-    source_value = os.getenv("JSP_SOURCE", "direct").strip().lower()
+    source_value = os.getenv("SOP_SOURCE", "direct").strip().lower()
     if source_value not in {"direct", "url"}:
-        raise ConfigError("JSP_SOURCE must be 'direct' or 'url'. See .env.example.")
+        raise ConfigError("SOP_SOURCE must be 'direct' or 'url'. See .env.example.")
     source: Literal["direct", "url"] = "url" if source_value == "url" else "direct"
 
-    timezone = os.getenv("JSP_TZ", "Europe/Madrid").strip()
+    timezone = os.getenv("SOP_TZ", "Europe/Madrid").strip()
     try:
         ZoneInfo(timezone)
     except ZoneInfoNotFoundError as error:
         raise ConfigError(
-            f"JSP_TZ names an unknown timezone: {timezone!r}. See .env.example."
+            f"SOP_TZ names an unknown timezone: {timezone!r}. See .env.example."
         ) from error
 
     config = Config(
@@ -113,23 +113,23 @@ def load_config(*, required: tuple[str, ...] = ()) -> Config:
         ).strip(),
         token_path=Path(
             os.getenv(
-                "JSP_TOKEN_PATH", str(Path.home() / ".config" / "jsp" / "token.json")
+                "SOP_TOKEN_PATH", str(Path.home() / ".config" / "sop" / "token.json")
             )
         ).expanduser(),
         cache_dir=Path(
-            os.getenv("JSP_CACHE_DIR", str(Path.home() / ".cache" / "jsp"))
+            os.getenv("SOP_CACHE_DIR", str(Path.home() / ".cache" / "sop"))
         ).expanduser(),
-        series_days=_positive_int("JSP_SERIES_DAYS", 30),
-        poll_interval_seconds=_positive_int("JSP_POLL_INTERVAL_SECONDS", 3600),
+        series_days=_positive_int("SOP_SERIES_DAYS", 30),
+        poll_interval_seconds=_positive_int("SOP_POLL_INTERVAL_SECONDS", 3600),
         timezone=timezone,
         source=source,
-        source_url=_optional("JSP_SOURCE_URL"),
-        serve_token=_optional("JSP_SERVE_TOKEN"),
-        commerce=_boolean("JSP_COMMERCE"),
+        source_url=_optional("SOP_SOURCE_URL"),
+        serve_token=_optional("SOP_SERVE_TOKEN"),
+        commerce=_boolean("SOP_COMMERCE"),
         # The view name is validated where the views live, at render time, so
         # there is one list of valid names rather than two.
-        view=os.getenv("JSP_VIEW", "stats").strip() or "stats",
-        panel=_optional("JSP_PANEL"),
+        view=os.getenv("SOP_VIEW", "stats").strip() or "stats",
+        panel=_optional("SOP_PANEL"),
     )
 
     required_fields = list(required)
