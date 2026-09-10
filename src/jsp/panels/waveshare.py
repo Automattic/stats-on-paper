@@ -14,8 +14,8 @@ class Waveshare4in26:
         except ImportError as error:
             raise RuntimeError(
                 "The Waveshare epd4in26 driver is not installed. The vendor does "
-                "not currently publish this model as a compatible PyPI wheel; "
-                "follow docs/api-notes.md#panel-drivers."
+                "not currently publish this model as a compatible PyPI wheel, so "
+                "this panel is render-only until that changes."
             ) from error
         self._display: Any = epd4in26.EPD()
 

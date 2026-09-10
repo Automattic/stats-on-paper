@@ -1,0 +1,130 @@
+{
+  "stats/waveshare-2in13": {
+    "mode": "1",
+    "size": [
+      250,
+      122
+    ],
+    "sha256": "5cd9d4e281cdf0109b2e0e0be6349702ed89a3231cd9214586fd249e3a7da242"
+  },
+  "stats/waveshare-2in13-four-color": {
+    "mode": "P",
+    "size": [
+      250,
+      122
+    ],
+    "sha256": "441a9d574bd0b00872065e602bbb096015c1d5fcda01fe6377698b96b1538ddc"
+  },
+  "stats/impression-4in0": {
+    "mode": "P",
+    "size": [
+      600,
+      400
+    ],
+    "sha256": "5bd9e79e240bc364ec13fb16a95fa77f3583505806682101f77320b7d852abd4"
+  },
+  "stats/waveshare-4in26": {
+    "mode": "1",
+    "size": [
+      800,
+      480
+    ],
+    "sha256": "0b4b395504ab4cf492dbf941cc6fb98c34171c793fdc8cdd755ffe39c29f679c"
+  },
+  "stats/waveshare-4in26-four-color": {
+    "mode": "P",
+    "size": [
+      800,
+      480
+    ],
+    "sha256": "18d96eb8ac1ae8d202a971afc907d4e62cb27b9d33b030e9f41fce29099f4ded"
+  },
+  "stats/impression-7in3": {
+    "mode": "P",
+    "size": [
+      800,
+      480
+    ],
+    "sha256": "c02b6fb8d2d66875df6763d2b36872742bda1663f3862e58aed96029ff1b531b"
+  },
+  "stats/waveshare-10in3": {
+    "mode": "P",
+    "size": [
+      1872,
+      1404
+    ],
+    "sha256": "6c1da5cb792607f86ba7f4efcb4009db03be1240b9c818b4d9b13be342d2a9bc"
+  },
+  "stats/trmnl": {
+    "mode": "1",
+    "size": [
+      800,
+      480
+    ],
+    "sha256": "0b4b395504ab4cf492dbf941cc6fb98c34171c793fdc8cdd755ffe39c29f679c"
+  },
+  "commerce/waveshare-2in13": {
+    "mode": "1",
+    "size": [
+      250,
+      122
+    ],
+    "sha256": "3b2b050dba373e5404975be180ba5b3539f6692bbf8b26dba1c6bbc72eea18ad"
+  },
+  "commerce/waveshare-2in13-four-color": {
+    "mode": "P",
+    "size": [
+      250,
+      122
+    ],
+    "sha256": "1fdbf07cc97bb99b2881d799f6305023e2f225e638e89a9752ece3024140e249"
+  },
+  "commerce/impression-4in0": {
+    "mode": "P",
+    "size": [
+      600,
+      400
+    ],
+    "sha256": "3859ee3419778bdac15733fb4a5b8489aa461e506099358a18a8384e8f513681"
+  },
+  "commerce/waveshare-4in26": {
+    "mode": "1",
+    "size": [
+      800,
+      480
+    ],
+    "sha256": "8a3119c6ac7cb4a314495efebda6dabd709ca82125411792b1f842f4058475ec"
+  },
+  "commerce/waveshare-4in26-four-color": {
+    "mode": "P",
+    "size": [
+      800,
+      480
+    ],
+    "sha256": "c2f224f012620abc7ad5d030ea3052784897f1533672af12d8e44498761fc618"
+  },
+  "commerce/impression-7in3": {
+    "mode": "P",
+    "size": [
+      800,
+      480
+    ],
+    "sha256": "97496d55763cb86f08c2640f5158baab80b2024c56c45214981b71e39ded4f9d"
+  },
+  "commerce/waveshare-10in3": {
+    "mode": "P",
+    "size": [
+      1872,
+      1404
+    ],
+    "sha256": "fd8c29593276a2d3d5c30396aafcd5bb1c063d63401776b91087ebd3f89833c5"
+  },
+  "commerce/trmnl": {
+    "mode": "1",
+    "size": [
+      800,
+      480
+    ],
+    "sha256": "8a3119c6ac7cb4a314495efebda6dabd709ca82125411792b1f842f4058475ec"
+  }
+}

@@ -6,7 +6,7 @@ import pytest
 import requests
 
 from jsp.client import (
-    API_BASE_URL,
+    API_V1_BASE_URL,
     AuthenticationError,
     StatsClient,
     TransientClientError,
@@ -37,7 +37,7 @@ def test_client_uses_bearer_and_endpoint_params() -> None:
 
     assert session.headers["Authorization"] == "Bearer secret"
     session.get.assert_called_once_with(
-        f"{API_BASE_URL}/sites/example.com/stats/visits",
+        f"{API_V1_BASE_URL}/sites/example.com/stats/visits",
         params={
             "unit": "day",
             "quantity": 30,

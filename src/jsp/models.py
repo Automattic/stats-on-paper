@@ -34,8 +34,22 @@ class SiteRef:
 
 
 @dataclass(frozen=True)
-class CommerceCounter:
+class DayOrders:
+    date: date
     orders: int
+
+
+@dataclass(frozen=True)
+class Commerce:
+    """Store orders: today's count and the daily series behind it.
+
+    `orders` is today's figure and equals `series[-1].orders` whenever the
+    series is present. It stays on the wire because a reader older than the
+    series requires it, and a writer older than the series sends only it.
+    """
+
+    orders: int
+    series: list[DayOrders]
 
 
 @dataclass(frozen=True)
@@ -47,7 +61,7 @@ class StatsSnapshot:
     yesterday: Totals
     series: list[DayPoint]
     all_time: Totals | None
-    commerce: CommerceCounter | None
+    commerce: Commerce | None
     source: str
 
     def to_public_json(self, *, now: datetime | None = None) -> dict[str, Any]:
@@ -86,7 +100,15 @@ class StatsSnapshot:
                 _totals_json(self.all_time) if self.all_time is not None else None
             ),
             "commerce": (
-                {"orders": self.commerce.orders} if self.commerce is not None else None
+                {
+                    "orders": self.commerce.orders,
+                    "series": [
+                        {"date": row.date.isoformat(), "orders": row.orders}
+                        for row in self.commerce.series
+                    ],
+                }
+                if self.commerce is not None
+                else None
             ),
             "source": self.source,
         }
@@ -121,19 +143,12 @@ def snapshot_from_public_json(payload: object) -> StatsSnapshot:
     series: list[DayPoint] = []
     for index, raw_point in enumerate(series_raw):
         point = _mapping(raw_point, f"series[{index}]")
-        try:
-            point_date = date.fromisoformat(
-                _string(point.get("date"), f"series[{index}].date")
-            )
-        except ValueError as error:
-            raise SnapshotFormatError(
-                f"series[{index}].date must be YYYY-MM-DD"
-            ) from error
+        point_date = _date(point.get("date"), f"series[{index}].date")
         series.append(
             DayPoint(
                 date=point_date,
-                views=_integer(point.get("views"), f"series[{index}].views"),
-                visitors=_integer(point.get("visitors"), f"series[{index}].visitors"),
+                views=_count(point.get("views"), f"series[{index}].views"),
+                visitors=_count(point.get("visitors"), f"series[{index}].visitors"),
             )
         )
 
@@ -144,10 +159,20 @@ def snapshot_from_public_json(payload: object) -> StatsSnapshot:
     commerce = None
     if commerce_raw is not None:
         commerce_data = _mapping(commerce_raw, "commerce")
-        commerce = CommerceCounter(
-            orders=_integer(commerce_data.get("orders"), "commerce.orders")
+        commerce = Commerce(
+            orders=_count(commerce_data.get("orders"), "commerce.orders"),
+            # A writer older than the series sends only `orders`.
+            series=_order_series(commerce_data.get("series", [])),
         )
+        if commerce.series and commerce.series[-1].orders != commerce.orders:
+            # Today is stated twice on the wire; the view reads one and the
+            # chart the other, so they may not disagree.
+            raise SnapshotFormatError(
+                f"commerce.orders must equal the last day of commerce.series "
+                f"({commerce.orders} != {commerce.series[-1].orders})"
+            )
 
+    _reject_repeated_days([point.date for point in series], "series")
     return StatsSnapshot(
         schema=schema,
         site=site,
@@ -159,6 +184,46 @@ def snapshot_from_public_json(payload: object) -> StatsSnapshot:
         commerce=commerce,
         source=_string(root.get("source"), "source"),
     )
+
+
+def _order_series(value: object) -> list[DayOrders]:
+    if not isinstance(value, list):
+        raise SnapshotFormatError("commerce.series must be an array")
+    rows = [
+        DayOrders(
+            date=_date(
+                _mapping(row, f"commerce.series[{index}]").get("date"),
+                f"commerce.series[{index}].date",
+            ),
+            orders=_count(
+                _mapping(row, f"commerce.series[{index}]").get("orders"),
+                f"commerce.series[{index}].orders",
+            ),
+        )
+        for index, row in enumerate(value)
+    ]
+    _reject_repeated_days([row.date for row in rows], "commerce.series")
+    return sorted(rows, key=lambda row: row.date)
+
+
+def _reject_repeated_days(dates: list[date], name: str) -> None:
+    """One row per day: the renderer draws a bar per row and counts rows.
+
+    A repeated date would be drawn twice and captioned as two days.
+    """
+
+    seen: set[date] = set()
+    for day in dates:
+        if day in seen:
+            raise SnapshotFormatError(f"{name} has more than one {day.isoformat()}")
+        seen.add(day)
+
+
+def _date(value: object, name: str) -> date:
+    try:
+        return date.fromisoformat(_string(value, name))
+    except ValueError as error:
+        raise SnapshotFormatError(f"{name} must be YYYY-MM-DD") from error
 
 
 def _totals_json(totals: Totals) -> dict[str, int]:
@@ -173,10 +238,10 @@ def _totals_json(totals: Totals) -> dict[str, int]:
 def _totals(value: object, name: str) -> Totals:
     data = _mapping(value, name)
     return Totals(
-        views=_integer(data.get("views"), f"{name}.views"),
-        visitors=_integer(data.get("visitors"), f"{name}.visitors"),
-        likes=_integer(data.get("likes"), f"{name}.likes"),
-        comments=_integer(data.get("comments"), f"{name}.comments"),
+        views=_count(data.get("views"), f"{name}.views"),
+        visitors=_count(data.get("visitors"), f"{name}.visitors"),
+        likes=_count(data.get("likes"), f"{name}.likes"),
+        comments=_count(data.get("comments"), f"{name}.comments"),
     )
 
 
@@ -190,6 +255,19 @@ def _integer(value: object, name: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         raise SnapshotFormatError(f"{name} must be an integer")
     return value
+
+
+def _count(value: object, name: str) -> int:
+    """An audience count is a magnitude; a negative one is corrupt input.
+
+    Rejecting it here keeps the renderer from ever having to decide what a
+    negative day looks like.
+    """
+
+    count = _integer(value, name)
+    if count < 0:
+        raise SnapshotFormatError(f"{name} must not be negative")
+    return count
 
 
 def _string(value: object, name: str) -> str:

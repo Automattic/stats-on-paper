@@ -11,7 +11,7 @@ from collections.abc import Mapping
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, quote, urlencode, urlparse
 
 import requests
 
@@ -19,15 +19,17 @@ from jsp.config import Config
 
 AUTHORIZE_URL = "https://public-api.wordpress.com/oauth2/authorize"
 TOKEN_URL = "https://public-api.wordpress.com/oauth2/token"
-OAUTH_SCOPE = "stats"
+STATS_PROBE_URL = (
+    "https://public-api.wordpress.com/rest/v1.1/sites/{site}/stats/summary"
+)
 
 
 class AuthError(RuntimeError):
     """Login or token storage failed."""
 
 
-def load_access_token(path: Path) -> str:
-    """Read the access token from the private token file."""
+def load_token_payload(path: Path) -> dict[str, Any]:
+    """Read the private token file as a JSON object."""
 
     try:
         payload = json.loads(path.read_text(encoding="utf-8"))
@@ -37,8 +39,16 @@ def load_access_token(path: Path) -> str:
         ) from error
     except (OSError, json.JSONDecodeError) as error:
         raise AuthError(f"Could not read token file {path}: {error}") from error
+    if not isinstance(payload, dict):
+        raise AuthError(f"Token file {path} is not a JSON object.")
+    return payload
 
-    token = payload.get("access_token") if isinstance(payload, dict) else None
+
+def load_access_token(path: Path) -> str:
+    """Read the access token from the private token file."""
+
+    payload = load_token_payload(path)
+    token = payload.get("access_token")
     if not isinstance(token, str) or not token:
         raise AuthError(f"Token file {path} does not contain an access_token.")
     return token
@@ -59,6 +69,7 @@ def save_token(payload: Mapping[str, Any], path: Path) -> None:
         "refresh_token",
         "scope",
         "token_type",
+        "verified_site",
     }
     safe_payload = {key: payload[key] for key in allowed if key in payload}
 
@@ -87,22 +98,80 @@ def save_token(payload: Mapping[str, Any], path: Path) -> None:
             os.unlink(temporary_name)
 
 
-def build_authorize_url(config: Config, *, redirect_uri: str, state: str) -> str:
-    """Build the least-privilege, single-site authorization URL."""
+def token_matches_site(payload: Mapping[str, Any], site: str) -> bool:
+    """Whether a token payload grants the configured site.
 
-    if not config.client_id or not config.site:
-        raise AuthError("OAuth login requires WPCOM_CLIENT_ID and WPCOM_SITE.")
-    query = urlencode(
-        {
-            "client_id": config.client_id,
-            "redirect_uri": redirect_uri,
-            "response_type": "code",
-            "blog": config.site,
-            "scope": OAUTH_SCOPE,
-            "state": state,
-        }
-    )
-    return f"{AUTHORIZE_URL}?{query}"
+    The authorization screen's `blog` parameter is a request, not a
+    guarantee: the user can approve a different blog, and the token response
+    names the blog that was actually granted. Matches on the numeric blog id
+    or the blog URL hostname; a mapped custom domain can make the hostname
+    comparison fail for the right blog, so callers must name the granted
+    blog in their error message.
+    """
+
+    expected = site.strip().lower()
+    if expected.isdigit() and str(payload.get("blog_id")) == expected:
+        return True
+    url = payload.get("blog_url")
+    if isinstance(url, str):
+        host = urlparse(url).hostname
+        if host and host.lower() == expected:
+            return True
+    return False
+
+
+def granted_blog(payload: Mapping[str, Any]) -> str:
+    """Name the blog a token payload was granted for, for error messages."""
+
+    blog = payload.get("blog_url") or payload.get("blog_id")
+    return str(blog) if blog else "an unknown blog"
+
+
+def build_authorize_url(config: Config, *, redirect_uri: str, state: str) -> str:
+    """Build the authorization URL for the configured scope.
+
+    `stats` requests a least-privilege single-site token and names the blog;
+    `global` requests one token covering every site the account can access,
+    so no blog is named.
+    """
+
+    if not config.client_id:
+        raise AuthError("OAuth login requires WPCOM_CLIENT_ID.")
+    query: dict[str, str] = {
+        "client_id": config.client_id,
+        "redirect_uri": redirect_uri,
+        "response_type": "code",
+        "scope": config.oauth_scope,
+        "state": state,
+    }
+    if config.oauth_scope != "global":
+        if not config.site:
+            raise AuthError("OAuth login requires WPCOM_SITE for a stats token.")
+        query["blog"] = config.site
+    return f"{AUTHORIZE_URL}?{urlencode(query)}"
+
+
+def can_read_stats(payload: Mapping[str, Any], site: str) -> bool:
+    """Ask WordPress.com whether a token can read a site's stats.
+
+    A mapped custom domain makes the token's `blog_url` report the internal
+    ``*.wordpress.com`` address, so a textual comparison can reject a correct
+    grant. The API resolves domain aliases itself; its answer is the truth.
+    """
+
+    token = payload.get("access_token")
+    if not isinstance(token, str) or not token:
+        return False
+    try:
+        response = requests.get(
+            STATS_PROBE_URL.format(site=quote(site, safe="")),
+            params={"period": "day", "num": "1"},
+            headers={"Authorization": f"Bearer {token}"},
+            timeout=30,
+        )
+    except requests.RequestException as error:
+        raise AuthError(f"Could not verify stats access for {site}: {error}") from error
+    return response.status_code == 200
 
 
 def exchange_code(config: Config, *, code: str, redirect_uri: str) -> dict[str, Any]:
@@ -202,5 +271,16 @@ def login(config: Config, *, manual: bool) -> Path:
 
     code = _code_from_redirect(redirect_url, state)
     payload = exchange_code(config, code=code, redirect_uri=redirect_uri)
+    if config.oauth_scope != "global" and config.site:
+        if not token_matches_site(payload, config.site) and not can_read_stats(
+            payload, config.site
+        ):
+            raise AuthError(
+                f"The granted token (blog: {granted_blog(payload)}) cannot read "
+                f"stats for {config.site}, so it was not saved. Select "
+                f"{config.site} on the authorization screen, or confirm your "
+                "account can view its stats."
+            )
+        payload = {**payload, "verified_site": config.site}
     save_token(payload, config.token_path)
     return config.token_path

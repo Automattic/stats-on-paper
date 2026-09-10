@@ -1,0 +1,21 @@
+{%- comment -%}
+Paste this into the plugin's Shared markup box. TRMNL prepends it to every
+view before rendering, so each layout can `{% render "chart", series: series %}`.
+The bars are inline-styled: TRMNL's framework has no chart classes, and a div
+with only a height would draw nothing.
+{%- endcomment -%}
+{% template chart %}
+<div style="display:flex; align-items:flex-end; gap:1px; height:120px; width:100%">
+  {%- assign ceiling = series | map: "views" | sort | last -%}
+  {%- if ceiling == 0 -%}{%- assign ceiling = 1 -%}{%- endif -%}
+  {%- for point in series -%}
+  {%- assign height = point.views | times: 100 | divided_by: ceiling -%}
+  {%- comment -%}
+  Integer division floors, so a real but small day would round to 0% and
+  vanish. A day that happened always draws something.
+  {%- endcomment -%}
+  {%- if height == 0 and point.views > 0 -%}{%- assign height = 1 -%}{%- endif -%}
+  <div style="flex:1; background:black; height:{{ height }}%"></div>
+  {%- endfor -%}
+</div>
+{% endtemplate %}

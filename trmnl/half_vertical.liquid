@@ -1,0 +1,15 @@
+<div class="view view--half_vertical">
+  <div class="layout">
+    <span class="label">Views today</span>
+    <span class="value value--large">{{ today.views | number_with_delimiter }}</span>
+    <span class="label">Visitors today</span>
+    <span class="value">{{ today.visitors | number_with_delimiter }}</span>
+    {%- if commerce %}
+    <span class="label">Orders today</span>
+    <span class="value">{{ commerce.orders | number_with_delimiter }}</span>
+    {%- endif %}
+  </div>
+  <div class="title_bar">
+    <span class="title">{{ site.name }}</span>
+  </div>
+</div>

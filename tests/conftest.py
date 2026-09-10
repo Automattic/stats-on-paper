@@ -7,7 +7,8 @@ from pathlib import Path
 import pytest
 
 from jsp.models import (
-    CommerceCounter,
+    Commerce,
+    DayOrders,
     DayPoint,
     SiteRef,
     StatsSnapshot,
@@ -24,14 +25,21 @@ def no_real_network(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(socket.socket, "connect", blocked_connect)
 
 
+@pytest.fixture(autouse=True)
+def no_real_dotenv(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Keep the suite hermetic: never read a developer's real .env file."""
+
+    monkeypatch.setattr("jsp.config.load_dotenv", lambda: None)
+
+
 @pytest.fixture
 def snapshot() -> StatsSnapshot:
     return StatsSnapshot(
         schema=1,
         site=SiteRef(
             id=123456789,
-            name="Example Field Notes",
-            url="https://example.com",
+            name="The North Star",
+            url="https://northstar.test",
         ),
         fetched_at=datetime(2026, 7, 27, 12, 34, 56, tzinfo=UTC),
         today=Totals(views=1842, visitors=1206, likes=31, comments=8),
@@ -42,7 +50,14 @@ def snapshot() -> StatsSnapshot:
             DayPoint(date=date(2026, 7, 27), views=1842, visitors=1206),
         ],
         all_time=None,
-        commerce=CommerceCounter(orders=14),
+        commerce=Commerce(
+            orders=14,
+            series=[
+                DayOrders(date=date(2026, 7, 25), orders=11),
+                DayOrders(date=date(2026, 7, 26), orders=9),
+                DayOrders(date=date(2026, 7, 27), orders=14),
+            ],
+        ),
         source="wpcom",
     )
 

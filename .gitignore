@@ -11,4 +11,9 @@ coverage.xml
 dist/
 build/
 out.png
-
+snapshot.json
+.agent-relay/
+.mcp.json
+handover.md
+.dev/
+.DS_Store

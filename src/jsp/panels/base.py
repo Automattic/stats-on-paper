@@ -18,7 +18,7 @@ def open_panel(name: str) -> Panel:
         from jsp.panels.waveshare import Waveshare4in26
 
         return Waveshare4in26()
-    if name == "impression-7in3":
+    if name in {"impression-4in0", "impression-7in3"}:
         from jsp.panels.inky import InkyImpression
 
         return InkyImpression()

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+import logging
 from dataclasses import replace
 from datetime import UTC, datetime, timedelta
 
@@ -7,7 +9,7 @@ import pytest
 
 from jsp.cache import SnapshotCache
 from jsp.client import AuthenticationError, ResponseError, TransientClientError
-from jsp.service import SnapshotService
+from jsp.service import ApiShapeError, SnapshotService, SnapshotUnavailable
 
 
 def test_cache_hit_skips_fetch(tmp_path: object, snapshot: object) -> None:
@@ -80,3 +82,49 @@ def test_other_api_failure_can_return_stale(tmp_path: object, snapshot: object) 
     result = SnapshotService(cache=cache, fetch=api_failure).get_snapshot(max_age=0)
 
     assert result.fetched_at == snapshot.fetched_at
+
+
+def test_malformed_api_response_returns_stale_cache(
+    tmp_path: object, snapshot: object
+) -> None:
+    cache = SnapshotCache(tmp_path)
+    cache.save(snapshot)
+
+    def malformed() -> object:
+        raise ApiShapeError("stats/summary views must not be negative.")
+
+    result = SnapshotService(cache=cache, fetch=malformed).get_snapshot(max_age=0)
+
+    assert result.fetched_at == snapshot.fetched_at
+
+
+def test_corrupt_cache_does_not_block_a_fresh_fetch(
+    tmp_path: object, snapshot: object, caplog: pytest.LogCaptureFixture
+) -> None:
+    """A cache written by an older build must never brick every command."""
+    cache = SnapshotCache(tmp_path)
+    stale = snapshot.to_public_json()
+    stale["today"]["views"] = -1
+    cache.path.write_text(json.dumps(stale), encoding="utf-8")
+
+    with caplog.at_level(logging.WARNING):
+        result = SnapshotService(cache=cache, fetch=lambda: snapshot).get_snapshot(
+            max_age=0
+        )
+
+    assert result == snapshot
+    assert cache.load() == snapshot, "the bad file is replaced, not kept"
+    assert "cache" in caplog.text.lower()
+
+
+def test_corrupt_cache_with_failed_fetch_is_unavailable(
+    tmp_path: object, snapshot: object
+) -> None:
+    cache = SnapshotCache(tmp_path)
+    cache.path.write_text("{not json", encoding="utf-8")
+
+    def offline() -> object:
+        raise TransientClientError("offline")
+
+    with pytest.raises(SnapshotUnavailable):
+        SnapshotService(cache=cache, fetch=offline).get_snapshot(max_age=0)

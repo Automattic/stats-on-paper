@@ -11,6 +11,7 @@ import requests
 BASE_URL = "https://public-api.wordpress.com/rest"
 API_VERSION = "v1.1"
 API_BASE_URL = f"{BASE_URL}/{API_VERSION}"
+API_V1_BASE_URL = f"{BASE_URL}/v1"
 WPCOM_V2_BASE_URL = "https://public-api.wordpress.com/wpcom/v2"
 
 
@@ -50,9 +51,6 @@ class StatsClient:
         self.timeout = timeout
         self.session.headers.update({"Authorization": f"Bearer {token}"})
 
-    def site_info(self) -> dict[str, Any]:
-        return self._get(f"{API_BASE_URL}/sites/{self.site}")
-
     def summary(self, *, date: str) -> dict[str, Any]:
         return self._get(
             f"{API_BASE_URL}/sites/{self.site}/stats/summary",
@@ -60,8 +58,10 @@ class StatsClient:
         )
 
     def visits(self, *, quantity: int) -> dict[str, Any]:
+        # The visits endpoint must stay on API v1: WordPress.com rejects the
+        # v1.1 form for tokens that carry only the narrow `stats` scope.
         return self._get(
-            f"{API_BASE_URL}/sites/{self.site}/stats/visits",
+            f"{API_V1_BASE_URL}/sites/{self.site}/stats/visits",
             params={
                 "unit": "day",
                 "quantity": quantity,
@@ -72,12 +72,12 @@ class StatsClient:
     def all_time(self) -> dict[str, Any]:
         return self._get(f"{API_BASE_URL}/sites/{self.site}/stats")
 
-    def commerce_orders(self, *, date: str) -> dict[str, Any]:
+    def commerce_orders(self, *, date: str, quantity: int) -> dict[str, Any]:
         return self._get(
             f"{WPCOM_V2_BASE_URL}/sites/{self.site}/stats/orders",
             params={
                 "unit": "day",
-                "quantity": 1,
+                "quantity": quantity,
                 "date": date,
                 "stat_fields": "orders",
             },

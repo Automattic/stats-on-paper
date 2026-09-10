@@ -39,6 +39,7 @@ dev = [
   "mypy>=1.15",
   "pytest>=8.3",
   "pytest-cov>=6",
+  "python-liquid>=2.3.1",
   "responses>=0.25",
   "ruff>=0.11",
   "types-requests>=2.32",
@@ -48,14 +49,18 @@ dev = [
 packages = ["src/jsp"]
 
 [tool.hatch.build.targets.wheel.force-include]
+# Only what the renderer loads. The logo SVGs and their provenance README are
+# source material for the raster marks, not runtime assets.
 "assets/fonts" = "jsp/assets/fonts"
+"assets/logos/jetpack-mark.png" = "jsp/assets/logos/jetpack-mark.png"
+"assets/logos/parsely-mark.png" = "jsp/assets/logos/parsely-mark.png"
 
 [tool.hatch.build.targets.sdist]
 include = [
   "/assets",
-  "/docs",
   "/src",
   "/tests",
+  "/trmnl",
   "/.env.example",
   "/COPYRIGHT.md",
   "/LICENSE",

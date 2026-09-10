@@ -10,10 +10,11 @@ from collections.abc import Sequence
 from pathlib import Path
 
 from jsp.auth import login
-from jsp.config import ConfigError, load_config
+from jsp.config import ConfigError, load_config, require
 from jsp.http_service import create_app
 from jsp.panels.base import open_panel
 from jsp.render import render
+from jsp.render.layout import VIEWS, UnsupportedView
 from jsp.render.palette import PROFILES, get_profile
 from jsp.service import build_service
 
@@ -36,19 +37,17 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("fetch", help="Print the public snapshot JSON.")
 
     render_parser = subparsers.add_parser(
-        "render", help="Render an 800×480 PNG without hardware."
+        "render", help="Render a native-size panel PNG without hardware."
     )
-    render_parser.add_argument("--panel", choices=tuple(PROFILES), required=True)
+    render_parser.add_argument("--panel", choices=tuple(PROFILES))
+    render_parser.add_argument("--view", choices=tuple(VIEWS))
     render_parser.add_argument("-o", "--output", type=Path, default=Path("out.png"))
 
     display_parser = subparsers.add_parser(
         "display", help="Render and show the image on a local panel."
     )
-    display_parser.add_argument(
-        "--panel",
-        choices=("waveshare-4in26", "impression-7in3"),
-        required=True,
-    )
+    display_parser.add_argument("--panel", choices=tuple(PROFILES))
+    display_parser.add_argument("--view", choices=tuple(VIEWS))
 
     serve_parser = subparsers.add_parser("serve", help="Serve JSON and PNG endpoints.")
     serve_parser.add_argument("--host", default="127.0.0.1")
@@ -59,15 +58,16 @@ def build_parser() -> argparse.ArgumentParser:
 
 def run(argv: Sequence[str] | None = None) -> int:
     args = build_parser().parse_args(argv)
+    config = load_config()
 
     if args.command == "login":
-        config = load_config(required=("client_id", "client_secret", "site"))
+        require(config, "client_id", "client_secret", "site")
         token_path = login(config, manual=args.manual)
         print(f"Token saved to {token_path}")
         return 0
 
-    required = () if _configured_for_url() else ("site",)
-    config = load_config(required=required)
+    if config.source == "direct":
+        require(config, "site")
     service = build_service(config)
 
     if args.command == "fetch":
@@ -75,20 +75,37 @@ def run(argv: Sequence[str] | None = None) -> int:
         print(json.dumps(snapshot.to_public_json(), indent=2))
         return 0
 
+    if args.command in {"render", "display"}:
+        # Flags override configuration; the parser is built before the config
+        # is loaded, so neither can be an argparse default.
+        panel = args.panel or config.panel
+        if panel is None:
+            require(config, "panel")
+        view = args.view or config.view
+        snapshot = service.get_snapshot(max_age=config.poll_interval_seconds)
+        try:
+            image = render(snapshot, get_profile(str(panel)), view=view)
+        except UnsupportedView as error:
+            # The renderer sits below the configuration seam and cannot name a
+            # variable; here we can.
+            raise ConfigError(
+                f"{error} Set JSP_COMMERCE=true on the process that fetches."
+            ) from error
+    else:
+        image = None
+
     if args.command == "render":
-        snapshot = service.get_snapshot(max_age=20)
-        image = render(snapshot, get_profile(args.panel))
+        assert image is not None
         image.save(args.output, format="PNG")
         print(args.output)
         return 0
 
     if args.command == "display":
-        snapshot = service.get_snapshot(max_age=20)
-        image = render(snapshot, get_profile(args.panel))
-        panel = open_panel(args.panel)
+        assert image is not None
+        panel_device = open_panel(str(panel))
         try:
-            panel.show(image)
-            panel.sleep()
+            panel_device.show(image)
+            panel_device.sleep()
         except Exception:
             LOGGER.exception(
                 "Panel refresh failed; leaving the previous e-ink frame untouched."
@@ -106,16 +123,16 @@ def run(argv: Sequence[str] | None = None) -> int:
                 "JSP_SERVE_TOKEN is unset, so jsp serve will only bind to "
                 "localhost. Set it before using --host on a network interface."
             )
-        app = create_app(service, bearer_token=config.serve_token)
+        app = create_app(
+            service,
+            bearer_token=config.serve_token,
+            cache_max_age=config.poll_interval_seconds,
+            default_view=config.view,
+        )
         app.run(host=args.host, port=args.port)
         return 0
 
     raise AssertionError(f"Unhandled command {args.command}")
-
-
-def _configured_for_url() -> bool:
-    # This early load only decides which command-specific value is required.
-    return load_config().source == "url"
 
 
 def main() -> None:

@@ -1,0 +1,26 @@
+<div class="view view--full">
+  <div class="layout">
+    <div class="columns">
+      <div class="column">
+        <span class="label">Views today</span>
+        <span class="value value--xlarge">{{ today.views | number_with_delimiter }}</span>
+      </div>
+      <div class="column">
+        <span class="label">Visitors today</span>
+        <span class="value value--xlarge">{{ today.visitors | number_with_delimiter }}</span>
+      </div>
+      {%- if commerce %}
+      <div class="column">
+        <span class="label">Orders today</span>
+        <span class="value value--xlarge">{{ commerce.orders | number_with_delimiter }}</span>
+      </div>
+      {%- endif %}
+    </div>
+    <span class="label">Daily views</span>
+    {% render "chart", series: series %}
+  </div>
+  <div class="title_bar">
+    <span class="title">{{ site.name }}</span>
+    <span class="instance">{{ source }}</span>
+  </div>
+</div>

@@ -8,7 +8,7 @@ import tempfile
 from datetime import UTC, datetime
 from pathlib import Path
 
-from jsp.models import StatsSnapshot, snapshot_from_public_json
+from jsp.models import SnapshotFormatError, StatsSnapshot, snapshot_from_public_json
 
 
 class CacheError(RuntimeError):
@@ -29,7 +29,12 @@ class SnapshotCache:
             raise CacheError(
                 f"Could not read snapshot cache {self.path}: {error}"
             ) from error
-        return snapshot_from_public_json(payload)
+        try:
+            return snapshot_from_public_json(payload)
+        except SnapshotFormatError as error:
+            raise CacheError(
+                f"Snapshot cache {self.path} is not a valid snapshot: {error}"
+            ) from error
 
     def save(self, snapshot: StatsSnapshot) -> None:
         self.directory.mkdir(mode=0o700, parents=True, exist_ok=True)
