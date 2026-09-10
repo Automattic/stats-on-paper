@@ -176,8 +176,10 @@ gets neutral ink rather than Jetpack's green.
 On the sparse palettes, anti-aliasing is a correctness problem: a grey pixel
 sits nearer red than black. Text there is drawn aliased and the logo's edge
 alpha is snapped, so quantisation is a single nearest-colour pass with no
-repair loop. `output.pixel_values` bridges Pillow 11's `getdata()` and Pillow
-12.1's `get_flattened_data()`; keep both paths.
+repair loop. Text is laid out with Pillow's basic engine rather than libraqm,
+which not every Pillow wheel bundles, so a frame is byte-identical on every
+interpreter and platform. `output.pixel_values` bridges Pillow 11's
+`getdata()` and Pillow 12.1's `get_flattened_data()`; keep both paths.
 
 Palette index order on the Inky panels is unverified. The code emits P-mode
 indices in black, white, red, yellow, blue, green order and assumes the driver

@@ -38,7 +38,15 @@ def load_font(weight: str, size: int) -> ImageFont.FreeTypeFont:
     """
 
     filename = "Inter-Bold.otf" if weight == "bold" else "Inter-Regular.otf"
-    return ImageFont.truetype(str(_asset_path("fonts", filename)), size=size)
+    # Always the basic layout engine. Pillow prefers libraqm when a wheel
+    # bundles it, and not every wheel does, so the same font would otherwise
+    # be shaped differently from one interpreter or platform to the next and
+    # the recorded render reference could never hold everywhere.
+    return ImageFont.truetype(
+        str(_asset_path("fonts", filename)),
+        size=size,
+        layout_engine=ImageFont.Layout.BASIC,
+    )
 
 
 @lru_cache(maxsize=24)
