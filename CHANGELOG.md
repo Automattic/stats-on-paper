@@ -4,6 +4,14 @@ All notable changes to this project are recorded here. The format follows
 [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and the project uses
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Security
+
+- Allow Pillow 13 and lock it, with urllib3 2.8.0, Werkzeug 3.1.9, and
+  certifi 2026.10.23, so a locked install gets the patched releases. Pillow 13
+  renders every view and profile byte for byte the same as Pillow 12.
+
 ## [0.1.0] - 2026-09-10
 
 First public release.
@@ -32,4 +40,5 @@ First public release.
 - Parse.ly branding is recognised in a snapshot, but there is no Parse.ly fetch
   path yet.
 
+[Unreleased]: https://github.com/Automattic/stats-on-paper/compare/v0.1.0...HEAD
 [0.1.0]: https://github.com/Automattic/stats-on-paper/releases/tag/v0.1.0
