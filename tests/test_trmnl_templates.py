@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import json
 import re
+from html.parser import HTMLParser
 from pathlib import Path
 from typing import Any
 
@@ -17,6 +18,7 @@ from liquid import DictLoader, Environment, StrictUndefined
 from liquid.exceptions import LiquidError
 
 from sop.models import snapshot_from_public_json
+from sop.render.format import AGED_AFTER_SECONDS
 
 TEMPLATES = Path(__file__).parents[1] / "trmnl"
 LAYOUTS = ("full", "half_horizontal", "half_vertical", "quadrant")
@@ -89,7 +91,6 @@ def test_every_layout_renders_against_the_wire_contract(fixture_dir: Path) -> No
                 _environment().from_string(_layout_source(layout)).render(**payload)
             )
 
-            assert f"view--{layout}" in output, (layout, has_commerce)
             # Rendered through TRMNL's own delimiter filter, as the device would.
             assert f"{payload['today']['views']:,}" in output, (layout, has_commerce)
 
@@ -125,3 +126,68 @@ def test_a_real_count_is_never_a_zero_height_bar(fixture_dir: Path) -> None:
 
     assert len(heights) == 2
     assert all(float(height) > 0 for height in heights), heights
+
+
+def test_every_layout_says_how_old_its_numbers_are(fixture_dir: Path) -> None:
+    """TRMNL keeps showing the last screen it drew, so when pushes stop the
+    numbers must still say when they were fetched. The delayed warning uses
+    the PNG renderer's threshold, so both screens agree on what "late" is."""
+    for layout in LAYOUTS:
+        for age, delayed in (
+            (0, False),
+            (AGED_AFTER_SECONDS, False),
+            (AGED_AFTER_SECONDS + 1, True),
+        ):
+            payload = _wire_payload(fixture_dir)
+            payload["age_seconds"] = age
+
+            output = (
+                _environment().from_string(_layout_source(layout)).render(**payload)
+            )
+
+            assert "2026-07-27 12:34 UTC" in output, (layout, age)
+            assert ("Refresh delayed" in output) is delayed, (layout, age)
+            assert ("Updated" in output) is not delayed, (layout, age)
+
+
+class _Attributes(HTMLParser):
+    """Every class token and style attribute in some markup, however quoted."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.classes: list[str] = []
+        self.styles: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:
+        del tag
+        for name, value in attrs:
+            if name == "class" and value:
+                self.classes.extend(value.split())
+            if name == "style" and value:
+                self.styles.append(value)
+
+
+def test_templates_follow_trmnl_recipe_lint() -> None:
+    """Two rules from TRMNL's recipe linter (`trmnlp lint`) that these
+    templates can break: TRMNL wraps each layout in its own `view--*` element,
+    so the markup must not, and the markup may use at most six inline style
+    declarations in all, counting every Liquid branch."""
+    parser = _Attributes()
+    for path in TEMPLATES.glob("*.liquid"):
+        parser.feed(path.read_text(encoding="utf-8"))
+    parser.close()
+
+    wrappers = {
+        name
+        for name in parser.classes
+        if name in {f"view--{layout}" for layout in LAYOUTS} or name == "view"
+    }
+    assert not wrappers, wrappers
+
+    declarations = 0
+    for style in parser.styles:
+        css = re.sub(r"{{.*?}}", "value", style)
+        css = re.sub(r"{%.*?%}", "", css)
+        declarations += sum(1 for part in css.split(";") if ":" in part)
+    assert parser.styles, "the chart's bar heights are inline"
+    assert declarations <= 6, declarations

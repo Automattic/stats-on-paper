@@ -1,26 +1,24 @@
-<div class="view view--full">
-  <div class="layout">
-    <div class="columns">
-      <div class="column">
-        <span class="label">Views today</span>
-        <span class="value value--xlarge">{{ today.views | number_with_delimiter }}</span>
-      </div>
-      <div class="column">
-        <span class="label">Visitors today</span>
-        <span class="value value--xlarge">{{ today.visitors | number_with_delimiter }}</span>
-      </div>
-      {%- if commerce %}
-      <div class="column">
-        <span class="label">Orders today</span>
-        <span class="value value--xlarge">{{ commerce.orders | number_with_delimiter }}</span>
-      </div>
-      {%- endif %}
+<div class="layout layout--col layout--left">
+  <div class="columns">
+    <div class="column">
+      <span class="label">Views today</span>
+      <span class="value value--xlarge portrait:value--large">{{ today.views | number_with_delimiter }}</span>
     </div>
-    <span class="label">Daily views</span>
-    {% render "chart", series: series %}
+    <div class="column">
+      <span class="label">Visitors today</span>
+      <span class="value value--xlarge portrait:value--large">{{ today.visitors | number_with_delimiter }}</span>
+    </div>
+    {%- if commerce %}
+    <div class="column">
+      <span class="label">Orders today</span>
+      <span class="value value--xlarge portrait:value--large">{{ commerce.orders | number_with_delimiter }}</span>
+    </div>
+    {%- endif %}
   </div>
-  <div class="title_bar">
-    <span class="title">{{ site.name }}</span>
-    <span class="instance">{{ source }}</span>
-  </div>
+  <span class="label">Daily views</span>
+  {% render "chart", series: series %}
+</div>
+<div class="title_bar">
+  <span class="title">{{ site.name }}</span>
+  {% render "freshness", fetched_at: fetched_at, age_seconds: age_seconds %}
 </div>
