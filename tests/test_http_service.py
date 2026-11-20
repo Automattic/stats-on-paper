@@ -11,7 +11,9 @@ from sop.service import SnapshotService
 def test_stats_route_is_root_level_and_authenticated(
     tmp_path: object, snapshot: object
 ) -> None:
-    service = SnapshotService(cache=SnapshotCache(tmp_path), fetch=lambda: snapshot)
+    service = SnapshotService(
+        cache=SnapshotCache(tmp_path, key="example.com"), fetch=lambda: snapshot
+    )
     app = create_app(service, bearer_token="serve-secret", cache_max_age=600)
     client = app.test_client()
 
@@ -27,7 +29,9 @@ def test_stats_route_is_root_level_and_authenticated(
 
 
 def test_screen_route_returns_png(tmp_path: object, snapshot: object) -> None:
-    service = SnapshotService(cache=SnapshotCache(tmp_path), fetch=lambda: snapshot)
+    service = SnapshotService(
+        cache=SnapshotCache(tmp_path, key="example.com"), fetch=lambda: snapshot
+    )
     client = create_app(service, bearer_token=None, cache_max_age=600).test_client()
 
     response = client.get("/v1/screen.png?panel=waveshare-4in26")
@@ -48,7 +52,9 @@ def test_screen_route_returns_png(tmp_path: object, snapshot: object) -> None:
 
 
 def test_view_selects_the_screen(tmp_path: object, snapshot: object) -> None:
-    service = SnapshotService(cache=SnapshotCache(tmp_path), fetch=lambda: snapshot)
+    service = SnapshotService(
+        cache=SnapshotCache(tmp_path, key="example.com"), fetch=lambda: snapshot
+    )
     client = create_app(service, bearer_token=None, cache_max_age=600).test_client()
 
     stats = client.get("/v1/screen.png?panel=trmnl")
@@ -62,7 +68,9 @@ def test_view_selects_the_screen(tmp_path: object, snapshot: object) -> None:
 def test_a_bad_panel_or_view_is_refused(tmp_path: object, snapshot: object) -> None:
     """Per request it is the caller's fault (400); a typo in SOP_VIEW must
     fail once at startup, not 400 every request forever."""
-    service = SnapshotService(cache=SnapshotCache(tmp_path), fetch=lambda: snapshot)
+    service = SnapshotService(
+        cache=SnapshotCache(tmp_path, key="example.com"), fetch=lambda: snapshot
+    )
     client = create_app(service, bearer_token=None, cache_max_age=600).test_client()
 
     assert client.get("/v1/screen.png?panel=unknown").status_code == 400
@@ -70,3 +78,4 @@ def test_a_bad_panel_or_view_is_refused(tmp_path: object, snapshot: object) -> N
 
     with pytest.raises(UnsupportedView, match="Unknown view 'nope'"):
         create_app(service, bearer_token=None, cache_max_age=600, default_view="nope")
+

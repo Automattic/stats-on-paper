@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable, Mapping
 from datetime import UTC, date, datetime, timedelta
+from hashlib import sha256
 from typing import Any
 from urllib.parse import urlparse
 from zoneinfo import ZoneInfo
@@ -84,6 +86,14 @@ class SnapshotService:
             requests.RequestException,
         ) as error:
             if cached is not None:
+                # Say why the numbers are old: a scheduled job's log is often
+                # the only place anyone will look.
+                LOGGER.warning(
+                    "Could not fetch fresh stats, so using the snapshot fetched "
+                    "at %s: %s",
+                    cached.fetched_at.isoformat(timespec="minutes"),
+                    error,
+                )
                 return cached
             raise SnapshotUnavailable(
                 f"Could not fetch stats and no cached snapshot exists: {error}"
@@ -93,8 +103,23 @@ class SnapshotService:
         return fresh
 
 
+def cache_key(config: Config) -> str:
+    """Name the cache after where its numbers come from.
+
+    Changing WPCOM_SITE or SOP_SOURCE_URL then starts a new file, so a failed
+    first fetch can never answer, or push to a TRMNL, with another site's
+    numbers. A site name stays readable; a URL is hashed.
+    """
+
+    if config.source == "url":
+        source_url = config.source_url or ""
+        return "url-" + sha256(source_url.encode("utf-8")).hexdigest()[:12]
+    site = (config.site or "").strip().lower()
+    return re.sub(r"[^a-z0-9.-]", "_", site)
+
+
 def build_service(config: Config) -> SnapshotService:
-    cache = SnapshotCache(config.cache_dir)
+    cache = SnapshotCache(config.cache_dir, key=cache_key(config))
     if config.source == "url":
         if not config.source_url:
             raise SnapshotUnavailable("SOP_SOURCE=url requires SOP_SOURCE_URL.")
