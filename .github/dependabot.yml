@@ -1,0 +1,16 @@
+version: 2
+updates:
+  # Routine version bumps arrive as one weekly pull request; security updates
+  # still open on their own as soon as an advisory is published.
+  - package-ecosystem: uv
+    directory: /
+    schedule:
+      interval: weekly
+    groups:
+      python:
+        patterns: ["*"]
+  # setup-uv has no floating major tag, so its exact pin needs a reminder.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
