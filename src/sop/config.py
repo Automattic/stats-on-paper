@@ -39,6 +39,7 @@ class Config:
     commerce: bool
     view: str
     panel: str | None
+    trmnl_webhook_url: str | None
 
 
 _ENV_FOR_FIELD = {
@@ -48,6 +49,7 @@ _ENV_FOR_FIELD = {
     "source_url": "SOP_SOURCE_URL",
     "serve_token": "SOP_SERVE_TOKEN",
     "panel": "SOP_PANEL",
+    "trmnl_webhook_url": "SOP_TRMNL_WEBHOOK_URL",
 }
 
 
@@ -138,6 +140,9 @@ def load_config(*, required: tuple[str, ...] = ()) -> Config:
         # there is one list of valid names rather than two.
         view=_setting("SOP_VIEW", "stats"),
         panel=_optional("SOP_PANEL"),
+        # Checked by `sop push`, the only command that uses it, so a typo here
+        # never stops `fetch`, `render`, or a wired panel.
+        trmnl_webhook_url=_optional("SOP_TRMNL_WEBHOOK_URL"),
     )
 
     required_fields = list(required)
@@ -160,6 +165,6 @@ def require(config: Config, *fields: str) -> None:
         if not getattr(config, field):
             env_name = _ENV_FOR_FIELD[field]
             raise ConfigError(
-                f"Missing {env_name}. Copy .env.example to .env, set {env_name}, "
-                "and try again."
+                f"Missing {env_name}. Set it in .env and try again; if there is "
+                "no .env yet, copy .env.example to .env first."
             )

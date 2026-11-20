@@ -53,7 +53,7 @@
       1872,
       1404
     ],
-    "sha256": "a7a5c0736d7b1d0d3fcc59a4c57344a5941f9a5e19292c9d3a7673a2824b72f6"
+    "sha256": "23f22fdc8717ae3f5462888efcf3432403617f5d36654344d0ab4683c15766d0"
   },
   "stats/trmnl": {
     "mode": "1",
@@ -62,6 +62,22 @@
       480
     ],
     "sha256": "fafa7621e035c26f07fce683661e0479a730b1125c5852ad0cfa272ec38c84c9"
+  },
+  "stats/trmnl-bwry": {
+    "mode": "P",
+    "size": [
+      800,
+      480
+    ],
+    "sha256": "15f0b2c43902630655db0c061b6f0e6666bbeb5e2188ffbc590165fe37348388"
+  },
+  "stats/trmnl-x": {
+    "mode": "P",
+    "size": [
+      1872,
+      1404
+    ],
+    "sha256": "3cc7850fc122e6ff9abbfec158db0a93145281dcaba271f7156d7b1f0b3dfa50"
   },
   "commerce/waveshare-2in13": {
     "mode": "1",
@@ -117,7 +133,7 @@
       1872,
       1404
     ],
-    "sha256": "44f792d63c24257562dd0819579d33c536acfd8fdf116c81576ec5a3c6d82d43"
+    "sha256": "d72ae68c0f0a3b760fcdb06fc690daa1b44f6d5c26585cc8f5833228e18d3c3b"
   },
   "commerce/trmnl": {
     "mode": "1",
@@ -126,5 +142,21 @@
       480
     ],
     "sha256": "8489b3f838cc4c1a0b9c2dfb91c1266122055d2effae078095420ea27bd14059"
+  },
+  "commerce/trmnl-bwry": {
+    "mode": "P",
+    "size": [
+      800,
+      480
+    ],
+    "sha256": "7ec899ecd830cf52a3b69f54e64e83948d4a60f0029ce51c1efb66fe27e60bd8"
+  },
+  "commerce/trmnl-x": {
+    "mode": "P",
+    "size": [
+      1872,
+      1404
+    ],
+    "sha256": "a413b3b507bd6f4175447982c84479927e168e228578c526a754b5b8af718400"
   }
 }

@@ -9,6 +9,7 @@ from typing import Literal
 # are the colours the layout asks for, and quantization snaps one to the other.
 BACKGROUND = (255, 255, 255)
 INK = (17, 17, 17)
+BLACK = (0, 0, 0)
 MUTED = (84, 84, 84)
 BLUE = (35, 82, 170)
 RED = (220, 38, 38)
@@ -132,6 +133,28 @@ PROFILES: dict[str, PanelProfile] = {
         dither="none",
         output_mode="1",
     ),
+    # The firmware of the four-colour OG maps each pixel's colour to an ink
+    # itself, and these four land on white, black, red, and yellow there.
+    "trmnl-bwry": PanelProfile(
+        name="trmnl-bwry",
+        size=LANDSCAPE_SIZE,
+        colors=(
+            (255, 255, 255),
+            (0, 0, 0),
+            (220, 38, 38),
+            (245, 196, 0),
+        ),
+        dither="none",
+        output_mode="P",
+    ),
+    # The X draws sixteen greys, so anti-aliased text keeps its smooth edges.
+    "trmnl-x": PanelProfile(
+        name="trmnl-x",
+        size=LARGE_SIZE,
+        colors=tuple((level, level, level) for level in range(0, 256, 17)),
+        dither="none",
+        output_mode="P",
+    ),
 }
 
 
@@ -202,14 +225,16 @@ def layout_colors(profile: PanelProfile, source: str) -> LayoutColors:
             divider=INK,
             alert=RED,
         )
+    # Grey panels get true black: with sixteen greys the near-black INK has an
+    # exact match one step above black, and every stroke would land there.
     return LayoutColors(
-        ink=INK,
+        ink=BLACK,
         muted=MUTED,
-        views=INK,
+        views=BLACK,
         visitors=MUTED,
-        latest=INK,
-        brand=INK,
-        footer_rule=INK,
+        latest=BLACK,
+        brand=BLACK,
+        footer_rule=BLACK,
         divider=(168, 164, 153),
-        alert=INK,
+        alert=BLACK,
     )

@@ -102,6 +102,7 @@ def test_snapshot_assembly_uses_site_dates(fixture_dir: Path, tmp_path: Path) ->
         commerce=True,
         view="stats",
         panel=None,
+        trmnl_webhook_url=None,
     )
     current = datetime(2026, 7, 27, 12, 34, 56, tzinfo=UTC)
 

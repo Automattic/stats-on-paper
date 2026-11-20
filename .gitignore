@@ -17,3 +17,5 @@ snapshot.json
 handover.md
 .dev/
 .DS_Store
+push.log
+.claude/

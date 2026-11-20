@@ -10,7 +10,7 @@ from pathlib import Path
 import pytest
 from record_render_hashes import frame_key, render_frames
 
-from sop.models import Commerce, DayOrders, DayPoint
+from sop.models import Commerce, DayOrders, DayPoint, StatsSnapshot
 from sop.render import render
 from sop.render.assets import logo_image
 from sop.render.chart import (
@@ -25,7 +25,7 @@ from sop.render.chart import (
     pair_widths,
     visible_days,
 )
-from sop.render.format import trend_period_label
+from sop.render.format import AGED_AFTER_SECONDS, trend_period_label, updated_label
 from sop.render.layout import VIEWS, UnsupportedView, _fit_count, _rail_details
 from sop.render.output import pixel_values
 from sop.render.palette import PROFILES
@@ -642,3 +642,27 @@ def test_rail_numbers_never_collide_on_the_large_panel(snapshot: object) -> None
             for y in range(rail_top, rail_top + round(38 * scale))
         ]
         assert all(pixel == (255, 255, 255) for pixel in gutter), index
+
+
+def test_a_delayed_footer_still_says_when_the_numbers_were_fetched(
+    snapshot: StatsSnapshot,
+) -> None:
+    """A TRMNL keeps showing the last picture it received, so a relative "3 hr
+    old" would read "3 hr old" for days. A delayed footer names the fetch time."""
+    late = AGED_AFTER_SECONDS + 3600
+
+    assert (
+        updated_label(snapshot, late, compact=False)
+        == "Refresh delayed · 12:34 UTC · 27 Jul"
+    )
+    assert updated_label(snapshot, late, compact=True) == "27 Jul 12:34"
+    assert updated_label(snapshot, 0, compact=True) == "12:34 UTC"
+
+
+def test_greyscale_panels_draw_ink_in_true_black(snapshot: StatsSnapshot) -> None:
+    """The layout's near-black ink must land on the panel's black, not on the
+    nearest grey: a sixteen-grey palette has an exact match for it."""
+    for name in ("waveshare-10in3", "trmnl-x"):
+        image = render(snapshot, PROFILES[name], now=snapshot.fetched_at)
+
+        assert (0, 0, 0) in set(pixel_values(image.convert("RGB"))), name

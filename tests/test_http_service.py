@@ -79,3 +79,18 @@ def test_a_bad_panel_or_view_is_refused(tmp_path: object, snapshot: object) -> N
     with pytest.raises(UnsupportedView, match="Unknown view 'nope'"):
         create_app(service, bearer_token=None, cache_max_age=600, default_view="nope")
 
+
+def test_screen_route_serves_the_panels_own_png_format(
+    tmp_path: object, snapshot: object
+) -> None:
+    """The route, `sop render`, and `sop push` share one encoder, so what a
+    person downloads is byte for byte what a TRMNL would be sent."""
+    service = SnapshotService(
+        cache=SnapshotCache(tmp_path, key="example.com"), fetch=lambda: snapshot
+    )
+    client = create_app(service, bearer_token=None, cache_max_age=600).test_client()
+
+    response = client.get("/v1/screen.png?panel=trmnl-bwry")
+
+    assert response.status_code == 200
+    assert (response.data[24], response.data[25]) == (2, 3), "2-bit palette PNG"
