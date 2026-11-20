@@ -31,6 +31,7 @@ def _config(scope: str) -> Config:
         commerce=False,
         view="stats",
         panel=None,
+        trmnl_webhook_url=None,
     )
 
 

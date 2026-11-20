@@ -1,18 +1,17 @@
-<div class="view view--half_horizontal">
-  <div class="layout">
-    <div class="columns">
-      <div class="column">
-        <span class="label">Views today</span>
-        <span class="value value--large">{{ today.views | number_with_delimiter }}</span>
-      </div>
-      <div class="column">
-        <span class="label">Visitors today</span>
-        <span class="value value--large">{{ today.visitors | number_with_delimiter }}</span>
-      </div>
+<div class="layout layout--col">
+  <div class="columns">
+    <div class="column">
+      <span class="label">Views today</span>
+      <span class="value value--large">{{ today.views | number_with_delimiter }}</span>
     </div>
-    {% render "chart", series: series %}
+    <div class="column">
+      <span class="label">Visitors today</span>
+      <span class="value value--large">{{ today.visitors | number_with_delimiter }}</span>
+    </div>
   </div>
-  <div class="title_bar">
-    <span class="title">{{ site.name }}</span>
-  </div>
+  {% render "chart", series: series %}
+</div>
+<div class="title_bar">
+  <span class="title">{{ site.name }}</span>
+  {% render "freshness", fetched_at: fetched_at, age_seconds: age_seconds %}
 </div>

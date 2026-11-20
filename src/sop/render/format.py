@@ -46,22 +46,17 @@ def trend_period_label(points: Sized, *, compact: bool) -> str:
 def updated_label(snapshot: StatsSnapshot, age_seconds: int, *, compact: bool) -> str:
     timestamp = snapshot.fetched_at.astimezone(UTC)
     if age_seconds > AGED_AFTER_SECONDS:
+        # The fetch time, not a relative age: a TRMNL keeps showing the last
+        # picture it received, and "3 hr old" would still say so days later.
+        # The layout draws this label in its alert ink, bold on compact panels.
         if compact:
-            return f"{human_age(age_seconds)} old"
-        return f"Refresh delayed · {human_age(age_seconds)} old"
+            return f"{timestamp.day} {timestamp:%b %H:%M}"
+        return (
+            f"Refresh delayed · {timestamp:%H:%M} UTC · {timestamp.day} {timestamp:%b}"
+        )
     if compact:
         return f"{timestamp:%H:%M} UTC"
     return f"Updated {timestamp:%H:%M} UTC · {timestamp.day} {timestamp:%b}"
-
-
-def human_age(seconds: int) -> str:
-    if seconds < 120:
-        return f"{seconds} sec"
-    if seconds < 7200:
-        return f"{seconds // 60} min"
-    if seconds < 172800:
-        return f"{seconds // 3600} hr"
-    return f"{seconds // 86400} days"
 
 
 def site_domain(url: str, *, fallback: str = "") -> str:

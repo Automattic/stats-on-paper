@@ -19,10 +19,10 @@ WordPress.com API, or another `sop serve`
            StatsSnapshot
            /            \
           v              v
-   pure renderer     public JSON  (GET /v1/stats.json, TRMNL, another sop)
+   pure renderer     public JSON  (GET /v1/stats.json, TRMNL polling, another sop)
           |
           v
-         PNG          (GET /v1/screen.png, sop render)
+         PNG          (GET /v1/screen.png, sop render, sop push to TRMNL)
           |
           v
    optional panel driver  (sop display)
@@ -41,19 +41,20 @@ remote server.
 | `src/sop/models.py` | Frozen snapshot dataclasses; schema-1 serialisation and parsing | Counts are never negative, a day appears once per series, and `commerce.orders` equals the last day of `commerce.series`. |
 | `src/sop/client.py` | Thin WordPress.com calls and retry classification | 401 and 403 fail at once. Timeouts, connection errors, and 5xx retry three times. |
 | `src/sop/service.py` | API-to-model parsing, source selection, cache policy | API quirks stop here. An authentication error never hides behind cached data. |
-| `src/sop/cache.py` | `~/.cache/sop/snapshot.json` | Written to a temp file, fsynced, then atomically replaced. The cache holds the snapshot, not a rendered frame. |
+| `src/sop/cache.py` | `~/.cache/sop/snapshot-<source>.json` | One file per site or source URL, so a site never answers with another's numbers. Written to a temp file, fsynced, then atomically replaced. The cache holds the snapshot, not a rendered frame. |
 | `src/sop/auth.py` | WordPress.com OAuth and `~/.config/sop/token.json` | Directory `0700`, file `0600`, only allow-listed fields persisted. A token is saved only if it can read the configured site. |
 | `src/sop/config.py` | `.env` and environment parsing | The renderer never imports it. Values are validated once, and errors name the variable to set. |
 | `src/sop/render/layout.py` | The compact and large layouts for every view | `render(snapshot, profile, view=, now=)` is pure. `VIEWS` maps a name to its two bodies. |
 | `src/sop/render/chart.py` | Shared chart frame, paired and single-series bars, legend, sparkline | Zero baseline, one pixel minimum for any positive count, series windowed rather than overdrawn. |
 | `src/sop/render/palette.py` | Panel sizes, physical palettes, output modes, layout inks | `PanelProfile.kind` is the single source of truth for ink policy and quantisation. A profile proves rendering, not a driver. |
-| `src/sop/render/output.py` | RGB canvas to panel palette | Output never contains a colour the panel cannot show. |
+| `src/sop/render/output.py` | RGB canvas to panel palette, and the panel's PNG format | Output never contains a colour the panel cannot show. `render`, `serve`, and `push` write a panel's PNG through one encoder, at the bit depth its palette needs. |
 | `src/sop/render/assets.py` | Bundled fonts and provider marks | Loaded once and cached. Font files are the only disk I/O in a render. |
 | `src/sop/render/text.py`, `format.py` | Measuring, fitting, and formatting | Geometry and strings only, no drawing decisions. |
 | `src/sop/panels/` | Optional device adapters | Importing `sop` never needs GPIO or a vendor library. A failed refresh leaves the previous frame on the panel. |
 | `src/sop/http_service.py` | `/v1/stats.json` and `/v1/screen.png` | A non-loopback bind without `SOP_SERVE_TOKEN` is refused by the CLI. |
-| `src/sop/cli.py` | `login`, `fetch`, `render`, `display`, `serve` | Each command is useful alone. Only `display` needs hardware. |
-| `trmnl/` | Liquid layouts for a TRMNL private plugin | Every variable a template reads is proved to exist in `to_public_json()` by `tests/test_trmnl_templates.py`. |
+| `src/sop/trmnl.py` | Uploading a frame to a TRMNL Webhook Image plugin | Only a profile in `TRMNL_PANELS` is uploaded. Only a 2xx without an error body counts as delivered, and redirects are never followed. The webhook URL is a credential: `https` only, never in a message, a chained exception, or a urllib3 log line. |
+| `src/sop/cli.py` | `login`, `fetch`, `push`, `render`, `display`, `serve` | Each command is useful alone. Only `display` needs hardware. |
+| `trmnl/` | Liquid layouts for a TRMNL private plugin | Every variable a template reads is proved to exist in `to_public_json()` by `tests/test_trmnl_templates.py`, which also holds the markup to two of TRMNL's recipe lint rules. |
 | `tests/fixtures/render-hashes.json` | One hash per view and profile | The guard for refactors. Re-record only for an intended visual change, in its own commit. |
 
 ## The snapshot
@@ -120,7 +121,10 @@ polling faster. The twenty-odd seconds an e-ink panel takes to redraw is a
 physical refresh duration, not a polling cadence.
 
 When a fetch fails and a cached snapshot exists, the cached one is returned
-with its timestamp untouched, so the panel shows an honest age. The one
+with its timestamp untouched, so the panel shows an honest age, and the
+reason is logged. Each site or source URL has its own cache file, so after
+changing `WPCOM_SITE` a failed first fetch has nothing to fall back on rather
+than another site's numbers. The one
 exception is authentication: a 401 or 403 always surfaces, because the
 operator has to know the token is dead. A cache file the current build cannot
 parse is logged and treated as absent; the next successful fetch replaces it.
@@ -142,6 +146,43 @@ snapshot-content tag.
 two machines you own. It is Flask's development server; put an HTTPS proxy in
 front of it before anything outside localhost can reach it.
 
+## Pushing to TRMNL
+
+`sop push` renders a fresh snapshot for a TRMNL model's profile and uploads
+the PNG to TRMNL's Webhook Image plugin. TRMNL passes the image to the device
+untouched, so the TRMNL shows the same frame as every other panel, branding
+included, and nothing has to accept a connection from the internet.
+
+Because nothing resizes or recolours the upload, `sop push` needs `SOP_PANEL`
+or `--panel` set to one of the three profiles that match a TRMNL screen:
+`trmnl` (OG, 1-bit), `trmnl-bwry` (OG with red and yellow), and `trmnl-x`
+(1872×1404, sixteen greys). It checks that, the webhook URL, and the view
+before reading a token or making a request. The four-colour OG's firmware maps
+each pixel's RGB value to an ink with its own rule rather than reading palette
+indices; `tests/test_trmnl_push.py` runs that rule over the profile's colours.
+TRMNL's own server sends the OG family 1- and 2-bit PNGs, so `encode_png`
+writes the fewest bits per pixel the profile's palette needs; the frames come
+to about 4 KB for the OGs and 35 KB for the X, against limits of 90 KB and
+750 KB.
+
+An upload counts as delivered only on a 2xx whose body reports no error.
+Redirects are not followed, because `requests` would turn the POST into a GET
+of some page and report success, or carry the picture to another host. TRMNL
+accepts about 12 uploads an hour per plugin; each refusal is translated into
+the setting or step that fixes it, and TRMNL's own text is never repeated,
+because it may quote the URL.
+
+When pushes stop, TRMNL keeps showing the last picture, so the footer names
+the fetch time even when it says "Refresh delayed": a relative "3 hr old"
+would still say so days later. When a fetch fails and an older snapshot is
+pushed instead, the reason is logged, so the schedule's log says why.
+
+The `trmnl/` Liquid templates are a separate, simpler design for TRMNL to draw
+from `/v1/stats.json` when someone polls a public `sop serve`. They print the
+fetch time cut from `fetched_at` with `slice`, so neither Liquid engine's date
+handling can shift it, and decide "Refresh delayed" from `age_seconds` against
+the renderer's two-hour threshold.
+
 ## Rendering
 
 | Profile | Canvas | Palette | Driver |
@@ -153,7 +194,9 @@ front of it before anything outside localhost can reach it.
 | `waveshare-4in26-four-color` | 800×480 | black/white/red/yellow | none |
 | `impression-7in3` | 800×480 | Spectra 6 | Inky adapter, untested on hardware |
 | `waveshare-10in3` | 1872×1404 | four grey levels | none |
-| `trmnl` | 800×480 | black/white | TRMNL polls the server |
+| `trmnl` | 800×480 | black/white | TRMNL OG via `sop push`, untested on a device |
+| `trmnl-bwry` | 800×480 | black/white/red/yellow | TRMNL OG (B/W/R/Y) via `sop push`, untested on a device |
+| `trmnl-x` | 1872×1404 | sixteen grey levels | TRMNL X via `sop push`, untested on a device |
 
 Layouts: panels 160 pixels tall or less get the compact layout (one hero
 number, a sparkline, one secondary number). Larger panels get three aligned
@@ -171,7 +214,9 @@ panel can still tell them apart, and a legend names both.
 Colour is never the only cue. Mono uses black. Four-colour panels use yellow
 for structure and reserve red for the delayed-refresh warning. Spectra panels
 use the provider's green for views and blue for visitors. An unknown provider
-gets neutral ink rather than Jetpack's green.
+gets neutral ink rather than Jetpack's green. Grey panels draw ink in true
+black: on a sixteen-grey palette the layout's near-black would otherwise land
+one step above it.
 
 On the sparse palettes, anti-aliasing is a correctness problem: a grey pixel
 sits nearer red than black. Text there is drawn aliased and the logo's edge
@@ -222,9 +267,9 @@ display` as experimental until this section changes.
   variable is `SOP_VIEW`, not "mode", which already means PIL output mode.
 - `commerce.orders` stays on the wire beside `commerce.series`, because an
   older reader requires it and an older writer sends only it.
-- TRMNL marketplace recipes must run without a third-party server or user
-  authentication, and this project needs both. The deliverable is a private
-  plugin template each person points at their own `sop serve`.
+- A TRMNL gets the rendered PNG through the Webhook Image plugin, so it shows
+  the same design and branding as every other panel and no one has to expose
+  a server. The Liquid templates stay for polling a public `sop serve`.
 - Parse.ly is recognised in a snapshot and gets its own mark, but there is no
   Parse.ly fetch path. A future adapter needs a capability-aware contract,
   not Jetpack's likes and comments wearing a Parse.ly logo.

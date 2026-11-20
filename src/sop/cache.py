@@ -16,9 +16,11 @@ class CacheError(RuntimeError):
 
 
 class SnapshotCache:
-    def __init__(self, directory: Path) -> None:
+    """One snapshot file per source, so two sources never share an answer."""
+
+    def __init__(self, directory: Path, *, key: str) -> None:
         self.directory = directory
-        self.path = directory / "snapshot.json"
+        self.path = directory / f"snapshot-{key}.json"
 
     def load(self) -> StatsSnapshot | None:
         try:

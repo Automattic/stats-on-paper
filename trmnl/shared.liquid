@@ -1,11 +1,14 @@
 {%- comment -%}
 Paste this into the plugin's Shared markup box. TRMNL prepends it to every
-view before rendering, so each layout can `{% render "chart", series: series %}`.
-The bars are inline-styled: TRMNL's framework has no chart classes, and a div
-with only a height would draw nothing.
+view before rendering, so each layout can `{% render "chart", series: series %}`
+and `{% render "freshness", fetched_at: fetched_at, age_seconds: age_seconds %}`.
+The bars use the framework's flex and size classes; only each bar's height is
+inline, because it comes from the data. Placed directly in a `layout--col`,
+`stretch-y` gives the chart whatever height the numbers leave, on every
+screen size TRMNL renders for.
 {%- endcomment -%}
 {% template chart %}
-<div style="display:flex; align-items:flex-end; gap:1px; height:120px; width:100%">
+<div class="flex flex--row flex--bottom gap--xsmall w--full stretch-y">
   {%- assign ceiling = series | map: "views" | sort | last -%}
   {%- if ceiling == 0 -%}{%- assign ceiling = 1 -%}{%- endif -%}
   {%- for point in series -%}
@@ -15,7 +18,20 @@ with only a height would draw nothing.
   vanish. A day that happened always draws something.
   {%- endcomment -%}
   {%- if height == 0 and point.views > 0 -%}{%- assign height = 1 -%}{%- endif -%}
-  <div style="flex:1; background:black; height:{{ height }}%"></div>
+  <div class="grow bg--black" style="height:{{ height }}%"></div>
   {%- endfor -%}
 </div>
+{% endtemplate %}
+{% template freshness %}
+{%- comment -%}
+TRMNL keeps showing the last screen it drew, so the fetch time is always on
+it. 7200 seconds is the PNG renderer's AGED_AFTER_SECONDS. Red reaches only
+colour screens; the bit-depth classes keep the warning solid black on grey
+and black-and-white ones, where red would dither.
+{%- endcomment -%}
+{%- if age_seconds > 7200 -%}
+<span class="instance text--red 1bit:text--black 2bit:text--black 4bit:text--black">Refresh delayed · {{ fetched_at | slice: 0, 10 }} {{ fetched_at | slice: 11, 5 }} UTC</span>
+{%- else -%}
+<span class="instance">Updated {{ fetched_at | slice: 0, 10 }} {{ fetched_at | slice: 11, 5 }} UTC</span>
+{%- endif -%}
 {% endtemplate %}

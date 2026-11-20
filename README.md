@@ -4,16 +4,18 @@ Put your WordPress.com or Jetpack site's stats on an e-ink display.
 
 ![Sample dashboard rendered for an 800×480 Spectra 6 panel](assets/previews/impression-7in3.png)
 
-After a one-time `sop login --manual`, four commands do the work. Each is
+After a one-time `sop login --manual`, five commands do the work. Each is
 useful on its own, so you can stop wherever you like:
 
 - `sop fetch` prints your stats as JSON;
 - `sop render` turns that JSON into a PNG at the panel's exact size;
+- `sop push` sends that PNG to your TRMNL, with nothing exposed to the internet;
 - `sop display` pushes the PNG to a panel plugged into this machine;
-- `sop serve` publishes the JSON and the PNG over HTTP for a TRMNL or another
-  device to poll.
+- `sop serve` publishes the JSON and the PNG over HTTP for another device to
+  poll.
 
-You need a panel only for `display`. Everything else runs on a laptop.
+Only `display` needs a panel wired to this machine. Everything else runs on a
+laptop.
 
 > **Status:** early release. Fetching, rendering, and serving are tested. The
 > Inky and Waveshare drivers exist but have not yet been run against a physical
@@ -81,7 +83,9 @@ command is optional; `render` fetches on its own.
 | `waveshare-4in26-four-color` | 800×480 | black/white/red/yellow | render only |
 | `impression-7in3` | 800×480 | Spectra 6 | Inky, untested on hardware |
 | `waveshare-10in3` | 1872×1404 | 4-level grayscale | render only |
-| `trmnl` | 800×480 | black/white | the TRMNL polls `sop serve` |
+| `trmnl` | 800×480 | black/white | TRMNL OG via `sop push`, untested on a device |
+| `trmnl-bwry` | 800×480 | black/white/red/yellow | TRMNL OG (B/W/R/Y) via `sop push`, untested on a device |
+| `trmnl-x` | 1872×1404 | 16-level grayscale | TRMNL X via `sop push`, untested on a device |
 
 "Render only" means you get a correct image for that panel, but this
 repository does not ship a driver for it.
@@ -117,7 +121,19 @@ point it at a laptop running `sop serve --host 0.0.0.0`: set `SOP_SOURCE=url`,
 Set `SOP_PANEL` in `.env` to skip the flag. Run it from cron or a systemd
 timer. The stats are daily totals, so once an hour is plenty.
 
-## Serve it to a TRMNL or another device
+## Show it on a TRMNL
+
+```console
+uv run sop push
+```
+
+This draws the screen for your TRMNL model (`SOP_PANEL`: `trmnl`,
+`trmnl-bwry`, or `trmnl-x`) and uploads it to TRMNL's Webhook Image plugin,
+which shows it exactly as drawn. Nothing has to be reachable from the
+internet. [`trmnl/README.md`](trmnl/README.md) walks through adding the
+plugin and sending a new picture every hour.
+
+## Serve it to another device
 
 ```console
 uv run sop serve
@@ -131,9 +147,6 @@ server refuses to listen on anything but localhost. It is Flask's development
 server, so put an HTTPS proxy in front of it before pointing anything on the
 internet at it.
 
-For a TRMNL, see [`trmnl/README.md`](trmnl/README.md). It has the private
-plugin settings and four ready-made layouts.
-
 ## Settings
 
 Everything is read from `.env`, and `.env.example` documents every variable.
@@ -141,7 +154,8 @@ The ones you are most likely to touch:
 
 | Variable | What it does | Default |
 | --- | --- | --- |
-| `SOP_PANEL` | Which panel `render` and `display` target | none |
+| `SOP_TRMNL_WEBHOOK_URL` | The Webhook Image plugin `sop push` uploads to | none |
+| `SOP_PANEL` | Which panel `render`, `display`, and `push` target | none |
 | `SOP_VIEW` | `stats` or `commerce` | `stats` |
 | `SOP_TZ` | Your site's timezone, so "today" rolls over when the site's day does | `UTC` |
 | `SOP_SERIES_DAYS` | How many daily points to fetch | `30` |
@@ -155,9 +169,9 @@ The ones you are most likely to touch:
 | --- | --- |
 | `The granted token ... cannot read stats for ...` | On the authorization screen, pick the site named in `WPCOM_SITE`, or log in with `WPCOM_SCOPE=global`. |
 | `No token found at ...` | Run `uv run sop login --manual`, or point `SOP_TOKEN_PATH` at the token you meant. |
-| `Panel '...' is render-only and has no local driver` | Use `render` for the PNG, or a TRMNL through `serve`. |
+| `Panel '...' is render-only and has no local driver` | Use `render` for the PNG, or `sop push` to a TRMNL. |
 | `This snapshot has no commerce data` | Set `SOP_COMMERCE=true` where `fetch` runs, then run `uv run sop fetch` once to replace the cached snapshot. |
-| The footer says `Refresh delayed` (on 250×122 panels, just the age, starting at `2 hr old`) | The last successful fetch was over two hours ago. Delete `~/.cache/sop/snapshot.json`, then `uv run sop fetch` shows the real error. |
+| The footer says `Refresh delayed` (on 250×122 panels, the fetch date and time in bold) | The last successful fetch was over two hours ago. Run `uv run sop fetch` to see the error, or delete your site's `snapshot-*.json` in `~/.cache/sop/` first. |
 
 Anything else: [open an issue](https://github.com/Automattic/stats-on-paper/issues).
 

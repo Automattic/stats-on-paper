@@ -14,6 +14,7 @@ from flask.json.provider import DefaultJSONProvider
 
 from sop.render import render
 from sop.render.layout import VIEWS, UnsupportedView
+from sop.render.output import encode_png
 from sop.render.palette import get_profile
 from sop.service import SnapshotService
 
@@ -85,11 +86,8 @@ def create_app(
             # Only an unusable view name is the caller's fault; a rendering
             # failure is a defect and must stay a 500.
             return jsonify({"error": str(error)}), 400
-        output = BytesIO()
-        image.save(output, format="PNG")
-        output.seek(0)
         response = send_file(
-            output,
+            BytesIO(encode_png(image, profile)),
             mimetype="image/png",
             download_name="screen.png",
         )

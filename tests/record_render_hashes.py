@@ -30,6 +30,7 @@ PREVIEWS = Path(__file__).parents[1] / "assets" / "previews"
 PREVIEW_FRAMES = (
     ("stats", "impression-7in3"),
     ("stats", "trmnl"),
+    ("stats", "trmnl-bwry"),
     ("stats", "waveshare-2in13"),
     ("commerce", "impression-7in3"),
 )
